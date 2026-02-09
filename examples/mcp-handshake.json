@@ -1,0 +1,37 @@
+{
+  "_comment": "MCP initialize response with ADHP capability extension",
+  "_description": "This shows how an MCP server declares its ADHP policy during the initialize handshake. The client checks these properties BEFORE sending any data.",
+
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocolVersion": "2025-06-18",
+    "capabilities": {
+      "tools": {
+        "listChanged": true
+      },
+      "resources": {
+        "subscribe": true,
+        "listChanged": true
+      },
+      "adhp": {
+        "level": "strict",
+        "training_opt_out": true,
+        "max_retention": "request",
+        "content_logging": false,
+        "delegation_policy": "same_or_higher",
+        "output_sanitization": true,
+        "compliance": ["GDPR"],
+        "pii_categories": ["email", "financial", "health"],
+        "processing_jurisdiction": ["DE"],
+        "storage_jurisdiction": ["DE"],
+        "log_jurisdiction": ["DE"],
+        "execution_environment": "containerized"
+      }
+    },
+    "serverInfo": {
+      "name": "FinanceAnalyzer Pro",
+      "version": "1.0.0"
+    }
+  }
+}

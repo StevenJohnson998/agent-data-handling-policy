@@ -1,0 +1,49 @@
+{
+  "_comment": "A2A Agent Card with ADHP extension. Served at /.well-known/agent.json",
+
+  "name": "FinanceAnalyzer Pro",
+  "description": "Advanced financial document analysis",
+  "url": "https://api.finanalyzer.example.com",
+  "version": "1.0.0",
+  "documentationUrl": "https://docs.finanalyzer.example.com",
+  "provider": {
+    "organization": "FinTech GmbH",
+    "url": "https://fintech.example.com"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "authentication": {
+    "schemes": ["OAuth2"],
+    "credentials": null
+  },
+  "defaultInputModes": ["text/plain", "application/pdf"],
+  "defaultOutputModes": ["text/plain", "application/json"],
+  "skills": [
+    {
+      "id": "financial-analysis",
+      "name": "Financial Analysis",
+      "description": "Analyze financial documents and extract key metrics",
+      "tags": ["finance", "analysis", "documents"]
+    },
+    {
+      "id": "risk-assessment",
+      "name": "Risk Assessment",
+      "description": "Evaluate financial risk from provided data",
+      "tags": ["finance", "risk"]
+    }
+  ],
+  "adhp": {
+    "level": "strict",
+    "training_opt_out": true,
+    "max_retention": "request",
+    "compliance": ["GDPR", "AI_ACT_EU"],
+    "pii_categories": ["email", "financial", "identity"],
+    "processing_jurisdiction": ["DE"],
+    "execution_environment": "containerized",
+    "third_party_sharing": {
+      "enabled": false
+    }
+  }
+}

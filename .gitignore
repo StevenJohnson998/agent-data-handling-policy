@@ -1,0 +1,24 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Private files
+private/
+
+# Scripts
+*.bat
+
+# Environment
+.env
+.env.*

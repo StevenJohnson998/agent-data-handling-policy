@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/StevenJohnson998/agent-data-handling-policy/schemas/adhp-v0.2.schema.json",
+  "title": "ADHP Data Handling Policy",
+  "description": "Agent Data Handling Policy (ADHP) v0.2 - validates the data_handling object in an agent manifest",
+  "type": "object",
+  "required": ["level", "training_opt_out", "max_retention", "content_logging", "delegation_policy", "output_sanitization", "third_party_sharing"],
+  "properties": {
+    "level": {
+      "type": "string",
+      "enum": ["open", "standard", "sensitive", "strict", "zero-trace"],
+      "description": "Overall data handling level (0-4)"
+    },
+    "training_opt_out": {
+      "type": "boolean",
+      "description": "Agent commits to NOT using data for model training"
+    },
+    "max_retention": {
+      "type": "string",
+      "enum": ["none", "request", "session", "24h", "7d", "30d", "custom", "unlimited"],
+      "description": "Maximum data retention period"
+    },
+    "retention_days": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Exact retention days when max_retention is 'custom'"
+    },
+    "session_ttl": {
+      "type": "string",
+      "enum": ["1h", "4h", "8h", "24h"],
+      "description": "Session duration when max_retention is 'session'"
+    },
+    "content_logging": {
+      "type": "boolean",
+      "description": "Whether request/response content appears in logs"
+    },
+    "delegation_policy": {
+      "type": "string",
+      "enum": ["none", "same_or_higher", "unrestricted"],
+      "description": "Sub-agent delegation policy"
+    },
+    "output_sanitization": {
+      "type": "boolean",
+      "description": "Whether outputs are scrubbed of source data"
+    },
+    "compliance": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Regulatory frameworks the agent complies with (e.g., GDPR, HIPAA)"
+    },
+    "pii_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["email", "phone", "financial", "health", "identity", "location", "biometric"]
+      },
+      "description": "PII types actively protected by the agent"
+    },
+    "processing_jurisdiction": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+      "description": "Where the AI model runs (ISO 3166-1 alpha-2)"
+    },
+    "storage_jurisdiction": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+      "description": "Where data is stored at rest (ISO 3166-1 alpha-2)"
+    },
+    "log_jurisdiction": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+      "description": "Where logs are stored (ISO 3166-1 alpha-2)"
+    },
+    "execution_environment": {
+      "type": "string",
+      "enum": ["standard", "containerized", "TEE", "enclave"],
+      "description": "Infrastructure type for data processing"
+    },
+    "certification": {
+      "type": ["string", "null"],
+      "description": "Verification/audit certificate ID"
+    },
+    "third_party_sharing": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether data is shared with any third party"
+        },
+        "parties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "purpose"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the third party"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["agent", "non_agent", "undisclosed"],
+                "description": "Whether the third party is a registered agent"
+              },
+              "purpose": {
+                "type": "string",
+                "enum": ["analytics", "advertising", "improvement", "subprocessing", "legal", "resale"],
+                "description": "Why data is shared"
+              },
+              "data_shared": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Categories of data shared"
+              },
+              "adhp_level": {
+                "type": ["string", "null"],
+                "enum": ["open", "standard", "sensitive", "strict", "zero-trace", null],
+                "description": "Third party's ADHP level if known"
+              },
+              "registry_id": {
+                "type": "string",
+                "description": "Registry ID if type is 'agent'"
+              }
+            }
+          }
+        },
+        "opt_out_available": {
+          "type": "boolean",
+          "description": "Whether the data sender can opt out of sharing"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "max_retention": { "const": "custom" } } },
+      "then": { "required": ["retention_days"] }
+    },
+    {
+      "if": { "properties": { "max_retention": { "const": "session" } } },
+      "then": { "required": ["session_ttl"] }
+    },
+    {
+      "if": { "properties": { "level": { "const": "zero-trace" } } },
+      "then": {
+        "properties": {
+          "delegation_policy": { "const": "none" },
+          "content_logging": { "const": false },
+          "max_retention": { "const": "none" },
+          "training_opt_out": { "const": true }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "level": { "const": "strict" } } },
+      "then": {
+        "properties": {
+          "content_logging": { "const": false },
+          "training_opt_out": { "const": true },
+          "third_party_sharing": {
+            "properties": { "enabled": { "const": false } }
+          }
+        }
+      }
+    }
+  ]
+}
