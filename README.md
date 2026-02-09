@@ -2,7 +2,7 @@
 
 [![ADHP Validator](https://github.com/StevenJohnson998/agent-data-handling-policy/actions/workflows/validate.yml/badge.svg)](https://github.com/StevenJohnson998/agent-data-handling-policy/actions/workflows/validate.yml)
 
-**A privacy nutrition label for AI agents.**
+**A privacy label for AI agents.**
 
 When an AI agent processes your data, what happens to it? Does it get stored? Used for training? Forwarded to a third party? Logged? Today, there's no standard way to know.
 
