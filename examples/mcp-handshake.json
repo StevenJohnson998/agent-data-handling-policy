@@ -26,7 +26,10 @@
         "processing_jurisdiction": ["DE"],
         "storage_jurisdiction": ["DE"],
         "log_jurisdiction": ["DE"],
-        "execution_environment": "containerized"
+        "execution_environment": "containerized",
+        "third_party_sharing": {
+          "enabled": false
+        }
       }
     },
     "serverInfo": {

@@ -1,5 +1,7 @@
 # Agent Data Handling Policy (ADHP)
 
+[![ADHP Validator](https://github.com/StevenJohnson998/agent-data-handling-policy/actions/workflows/validate.yml/badge.svg)](https://github.com/StevenJohnson998/agent-data-handling-policy/actions/workflows/validate.yml)
+
 **A privacy nutrition label for AI agents.**
 
 When an AI agent processes your data, what happens to it? Does it get stored? Used for training? Forwarded to a third party? Logged? Today, there's no standard way to know.
@@ -290,8 +292,9 @@ This specification needs your input. We're particularly looking for feedback on:
 - Open a [Discussion](../../discussions) for questions and ideas
 - Open an [Issue](../../issues) for specific problems or suggestions
 - Submit a PR for spec changes (please open an issue first)
-- All contributors must agree to the [Contributor License Agreement](CLA.md)
+
+---
 
 ## License
 
-[Apache 2.0](LICENSE) -- see [CLA.md](CLA.md) for contributor terms.
+Apache 2.0 -- see [LICENSE](LICENSE).

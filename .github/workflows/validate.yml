@@ -1,0 +1,64 @@
+name: ADHP Validator
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Run ADHP Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install jsonschema
+
+      - name: Run delegation chain validator
+        run: python tools/validate_chain.py
+
+      - name: Validate example manifest against schema
+        run: |
+          python -c "
+          import json, jsonschema
+
+          schema = json.load(open('schemas/adhp-v0.2.schema.json'))
+          manifest = json.load(open('examples/agent-manifest.json'))
+          jsonschema.validate(manifest['data_handling'], schema)
+          print('[OK] agent-manifest.json is valid against ADHP v0.2 schema')
+          "
+
+      - name: Validate MCP handshake example
+        run: |
+          python -c "
+          import json, jsonschema
+
+          schema = json.load(open('schemas/adhp-v0.2.schema.json'))
+          handshake = json.load(open('examples/mcp-handshake.json'))
+          adhp = handshake['result']['capabilities']['adhp']
+          jsonschema.validate(adhp, schema)
+          print('[OK] mcp-handshake.json ADHP capability is valid')
+          "
+
+      - name: Validate A2A Agent Card example
+        run: |
+          python -c "
+          import json, jsonschema
+
+          schema = json.load(open('schemas/adhp-v0.2.schema.json'))
+          card = json.load(open('examples/a2a-agent-card.json'))
+          jsonschema.validate(card['adhp'], schema)
+          print('[OK] a2a-agent-card.json ADHP extension is valid')
+          "
