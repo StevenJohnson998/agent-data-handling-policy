@@ -24,6 +24,23 @@ ADHP is an open specification that lets AI agents declare their data handling pr
 
 An orchestrator reads this and knows: *this agent won't train on my data, deletes it after each request, complies with GDPR and HIPAA, protects email/financial/health data, processes in Germany, and doesn't share with anyone.*
 
+### Minimal Declaration
+
+Only 4 fields are required to get started:
+
+```json
+{
+  "adhp": {
+    "level": "standard",
+    "training_opt_out": true,
+    "max_retention": "30d",
+    "third_party_sharing": { "enabled": false }
+  }
+}
+```
+
+That's it. Add more properties as you need them. [See all properties below.](#properties)
+
 ---
 
 ## Why This Matters
@@ -120,15 +137,21 @@ Try it: `python tools/validate_chain.py` ([see below](#try-it))
 
 ## Properties
 
-Beyond the level, agents declare specific properties:
+Beyond the level, agents declare specific properties. **Only 4 are required** -- everything else is optional and can be added incrementally.
 
-### Core Properties
+### Required Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `level` | enum | `open`, `standard`, `sensitive`, `strict`, `zero-trace` |
 | `training_opt_out` | boolean | Agent commits to NOT using data for model training |
 | `max_retention` | enum | `none`, `request`, `session`, `24h`, `7d`, `30d`, `custom`, `unlimited` |
+| `third_party_sharing.enabled` | boolean | Whether data is shared with any third party |
+
+### Optional — Core
+
+| Property | Type | Description |
+|----------|------|-------------|
 | `retention_days` | integer | Exact number of days when `max_retention` is `custom` |
 | `session_ttl` | string | When retention is `session`, how long that means: `1h`, `4h`, `24h` |
 | `content_logging` | boolean | Whether request/response content appears in logs |
@@ -136,7 +159,7 @@ Beyond the level, agents declare specific properties:
 | `output_sanitization` | boolean | Whether outputs are scrubbed of source data |
 | `certification` | string | Future: ID of a verification/audit certificate |
 
-### Privacy & Compliance
+### Optional — Privacy & Compliance
 
 | Property | Type | Description |
 |----------|------|-------------|
@@ -147,11 +170,10 @@ Beyond the level, agents declare specific properties:
 | `log_jurisdiction` | list | Where logs are kept |
 | `execution_environment` | enum | `standard`, `containerized`, `TEE`, `enclave` |
 
-### Third-Party Sharing
+### Optional — Third-Party Details
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `third_party_sharing.enabled` | boolean | Whether data is shared with any third party |
 | `third_party_sharing.parties` | list | Declared third parties with type, purpose, and ADHP level if known |
 | `third_party_sharing.opt_out_available` | boolean | Whether the data sender can opt out of sharing |
 

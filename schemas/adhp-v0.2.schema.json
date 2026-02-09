@@ -4,7 +4,7 @@
   "title": "ADHP Data Handling Policy",
   "description": "Agent Data Handling Policy (ADHP) v0.2 - validates the data_handling object in an agent manifest",
   "type": "object",
-  "required": ["level", "training_opt_out", "max_retention", "content_logging", "delegation_policy", "output_sanitization", "third_party_sharing"],
+  "required": ["level", "training_opt_out", "max_retention", "third_party_sharing"],
   "properties": {
     "level": {
       "type": "string",

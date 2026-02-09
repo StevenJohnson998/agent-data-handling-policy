@@ -102,9 +102,9 @@ Beyond the overall level, each agent declares specific properties in its manifes
 | `max_retention` | enum | **Yes** | `none`, `request`, `session`, `24h`, `7d`, `30d`, `custom`, `unlimited` |
 | `retention_days` | integer | No | Exact days when `max_retention` is `custom`. Must be >= 0. |
 | `session_ttl` | string | No | When `max_retention` is `session`, the duration: `1h`, `4h`, `8h`, `24h`. Required if max_retention is `session`. |
-| `content_logging` | boolean | **Yes** | Whether request/response content appears in logs |
-| `delegation_policy` | enum | **Yes** | `none`, `same_or_higher`, `unrestricted` |
-| `output_sanitization` | boolean | **Yes** | Whether outputs are scrubbed of source data |
+| `content_logging` | boolean | No | Whether request/response content appears in logs |
+| `delegation_policy` | enum | No | `none`, `same_or_higher`, `unrestricted` |
+| `output_sanitization` | boolean | No | Whether outputs are scrubbed of source data |
 | `certification` | string | No | Future: ID of a verification/audit certificate |
 
 ### 4.2 Privacy & Compliance Properties
