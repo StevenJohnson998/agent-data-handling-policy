@@ -41,6 +41,45 @@ ADHP solves this with five simple levels and a set of detailed properties.
 
 ---
 
+## Why It Also Matters for Service Providers
+
+ADHP isn't just for consumers of agents. **If you operate an AI service, you need it too.**
+
+Your service has a privacy policy. Your users consented to specific data handling terms. But the moment your service connects to an external MCP server, you inherit that server's data practices -- and you may have no idea what they are.
+
+**Today, providers face two bad options:**
+
+**Option A: Only use trusted agents.** You manually vet each agent provider. You negotiate data handling agreements, review contracts, involve legal. This is slow, expensive, and limits you to a handful of pre-approved agents. Your pool of usable agents shrinks to whoever you've had time to negotiate with.
+
+**Option B: Use agents without vetting.** You move fast and connect to whatever MCP server gets the job done. But you have no idea what it does with your users' data. If that server trains on content, logs everything, or forwards data to third parties, **you just breached your own privacy policy** -- and potentially violated GDPR Article 28 (processor obligations), HIPAA BAA requirements, or your local data protection regulations.
+
+**ADHP gives you a third option:**
+
+Every agent declares its data handling practices in a standard, machine-readable format. Your client checks the ADHP level before connecting. If it meets your requirements, connect instantly -- no negotiation, no legal review, no contracts. If it doesn't meet your requirements, skip it automatically.
+
+This means:
+- **Lower cost.** No need to negotiate data handling agreements one by one -- the policy is embedded in the protocol.
+- **Larger agent pool.** Instead of a curated shortlist, every agent with adequate data protection is available to you.
+- **Automated compliance.** Your system enforces your privacy promises programmatically, not through manual review.
+- **Audit trail.** Document the ADHP levels of every service in your chain for compliance audits.
+
+---
+
+### What About Bad Actors?
+
+ADHP is currently **self-declared**. An agent could claim Level 3 (strict) while actually logging everything. This is a real concern, and we address it progressively:
+
+- **Phase 1 (now):** Self-declaration. Similar to how websites publish privacy policies today -- it creates accountability and a basis for legal action if violated, but relies on trust.
+- **Phase 2:** Operator verification (KYC). We verify who operates the agent. A verified identity creates legal accountability -- lying about your data handling practices when your identity is known has real consequences.
+- **Phase 3:** Automated auditing. Auditor agents send test data with tracking markers and verify that declared policies match actual behavior.
+- **Phase 4:** Cryptographic verification. Hardware-backed guarantees (TEE/enclaves), signed manifests (W3C Verifiable Credentials), and cryptographic proofs of deletion.
+
+**We believe self-declaration is a meaningful first step** -- it's how GDPR compliance works today (organizations declare their practices and are held accountable). But we recognize this is an open question, and we'd love the community's input on how to make verification practical and trustworthy.
+
+*How should trust verification work? [Join the discussion.](../../discussions)*
+
+---
+
 ## The Five Levels
 
 | Level | Label | What It Means |
@@ -292,9 +331,10 @@ This specification needs your input. We're particularly looking for feedback on:
 - Open a [Discussion](../../discussions) for questions and ideas
 - Open an [Issue](../../issues) for specific problems or suggestions
 - Submit a PR for spec changes (please open an issue first)
+- All contributors must agree to the [Contributor License Agreement](CLA.md)
 
 ---
 
 ## License
 
-Apache 2.0 -- see [LICENSE](LICENSE).
+[Apache 2.0](LICENSE) -- see [CLA.md](CLA.md) for contributor terms.
