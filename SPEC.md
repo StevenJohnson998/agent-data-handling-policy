@@ -46,7 +46,7 @@ ADHP defines five levels of data handling, from most permissive to most restrict
 | Level | Label | Training | Retention | Logging | Delegation | Output | Third-Party Sharing |
 |-------|-------|----------|-----------|---------|------------|--------|---------------------|
 | 0 | **open** | Allowed | Unlimited | Full content | Unrestricted | May contain source data | Allowed |
-| 1 | **standard** | No | Defined period | Metadata only | Caller's level minimum | May contain derived data | With consent |
+| 1 | **standard** | No | Defined period | Allowed | Caller's level minimum | May contain derived data | With consent |
 | 2 | **sensitive** | No | Request or short-term | Metadata only | Caller's level+, declared | Sanitized | Anonymized only |
 | 3 | **strict** | No | Request only | None | Caller's level+ only | Sanitized + reviewed | Not allowed |
 | 4 | **zero-trace** | No | None (memory only) | None | No delegation | Sanitized, nothing leaves agent | Not allowed |
@@ -61,7 +61,7 @@ The agent makes no guarantees about data handling. Data may be used for any purp
 
 #### Level 1 -- Standard
 
-The agent will not use the data for model training. Data is retained for a defined period (declared via `max_retention` and optionally `retention_days`). Only metadata (timestamps, request IDs, token counts) is logged -- not the content itself.
+The agent will not use the data for model training. Data is retained for a defined period (declared via `max_retention` and optionally `retention_days`). Content logging is permitted but should be declared via the `content_logging` property.
 
 An agent at Level 1 may retain data beyond a single session to support features like conversation history. The exact retention period must be declared. If `max_retention` is `session`, the `session_ttl` property defines the duration.
 

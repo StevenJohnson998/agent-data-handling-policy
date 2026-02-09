@@ -85,7 +85,7 @@ ADHP is currently **self-declared**. An agent could claim Level 3 (strict) while
 | Level | Label | What It Means |
 |-------|-------|---------------|
 | 0 | **open** | No promises. Data may be used for anything including training, stored indefinitely, shared freely. |
-| 1 | **standard** | No training on your data. Defined retention period. Metadata logging only. |
+| 1 | **standard** | No training on your data. Defined retention period. |
 | 2 | **sensitive** | No training. Short retention. PII is protected. Output is sanitized. Third-party sharing only if anonymized. |
 | 3 | **strict** | No training, no content logging, no third-party sharing. Delegation only to same level or above. |
 | 4 | **zero-trace** | Memory-only processing. Nothing written to disk. No logs. No delegation. Data leaves no trace. |
