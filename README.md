@@ -290,9 +290,8 @@ This specification needs your input. We're particularly looking for feedback on:
 - Open a [Discussion](../../discussions) for questions and ideas
 - Open an [Issue](../../issues) for specific problems or suggestions
 - Submit a PR for spec changes (please open an issue first)
-
----
+- All contributors must agree to the [Contributor License Agreement](CLA.md)
 
 ## License
 
-Apache 2.0 -- see [LICENSE](LICENSE).
+[Apache 2.0](LICENSE) -- see [CLA.md](CLA.md) for contributor terms.
