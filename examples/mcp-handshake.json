@@ -5,7 +5,7 @@
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "protocolVersion": "2025-06-18",
+    "protocolVersion": "2025-03-26",
     "capabilities": {
       "tools": {
         "listChanged": true
@@ -18,14 +18,11 @@
         "level": "strict",
         "training_opt_out": true,
         "max_retention": "request",
-        "content_logging": false,
         "delegation_policy": "same_or_higher",
-        "output_sanitization": true,
         "compliance": ["GDPR"],
         "pii_categories": ["email", "financial", "health"],
         "processing_jurisdiction": ["DE"],
         "storage_jurisdiction": ["DE"],
-        "log_jurisdiction": ["DE"],
         "execution_environment": "containerized",
         "third_party_sharing": {
           "enabled": false
