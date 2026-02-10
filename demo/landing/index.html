@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAmagique — AI Agent Privacy & Trust</title>
+<meta name="description" content="Building open standards for AI agent privacy. Home of ADHP (Agent Data Handling Policy) — privacy labels for AI agents.">
+<link rel="icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0a;
+  color: #e0e0e0;
+  font-family: 'Space Grotesk', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.container { max-width: 640px; width: 100%; }
+.avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  border: 2px solid #222;
+  margin-bottom: 20px;
+}
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.tagline {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+.card {
+  background: #111;
+  border: 1px solid #1e1e1e;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  text-decoration: none;
+  display: block;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: #3b82f6; }
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-desc {
+  font-size: 13px;
+  color: #777;
+  line-height: 1.5;
+}
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.badge-live { background: #166534; color: #4ade80; }
+.badge-spec { background: #1e3a5f; color: #60a5fa; }
+.links {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #888;
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 1px solid #222;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.links a:hover { border-color: #555; color: #fff; }
+.footer {
+  margin-top: 40px;
+  font-size: 11px;
+  color: #333;
+  font-family: 'JetBrains Mono', monospace;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <img src="/apple-touch-icon.png" alt="IAmagique" class="avatar">
+  <h1>IAmagique</h1>
+  <p class="tagline">Building open standards for AI agent privacy and trust.</p>
+
+  <div class="section-label">Projects</div>
+
+  <a href="/adhp-demo/playground" class="card">
+    <div class="card-title">
+      🎮 ADHP Playground
+      <span class="badge badge-live">Live</span>
+    </div>
+    <div class="card-desc">
+      Interactive demo of the MCP handshake with ADHP extension. Configure client requirements and server declarations, then check compliance in real time.
+    </div>
+  </a>
+
+  <a href="https://github.com/StevenJohnson998/agent-data-handling-policy" class="card">
+    <div class="card-title">
+      📄 ADHP Specification
+      <span class="badge badge-spec">v0.2</span>
+    </div>
+    <div class="card-desc">
+      Agent Data Handling Policy — an open specification that lets AI agents declare their data handling practices. Privacy labels for the agentic era.
+    </div>
+  </a>
+
+  <a href="https://github.com/StevenJohnson998/agent-registry" class="card">
+    <div class="card-title">
+      🗂️ Agent Registry
+    </div>
+    <div class="card-desc">
+      A trust-aware registry where agents are discoverable by their data handling practices. Reference implementation for ADHP.
+    </div>
+  </a>
+
+  <div class="links">
+    <a href="https://github.com/StevenJohnson998">GitHub</a>
+    <a href="https://github.com/StevenJohnson998/agent-data-handling-policy/discussions">Discussions</a>
+    <a href="https://www.reddit.com/user/IAmagique">Reddit</a>
+  </div>
+
+  <div class="footer">© 2026 IAmagique</div>
+</div>
+</body>
+</html>
