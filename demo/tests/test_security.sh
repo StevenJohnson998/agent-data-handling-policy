@@ -8,8 +8,8 @@ BASE_URL="${1:-http://localhost:8910}"
 PASS=0
 FAIL=0
 
-green() { echo -e "\033[32m✅ $1\033[0m"; ((PASS++)); }
-red()   { echo -e "\033[31m❌ $1\033[0m"; ((FAIL++)); }
+green() { echo -e "\033[32m✅ $1\033[0m"; PASS=$((PASS+1)); }
+red()   { echo -e "\033[31m❌ $1\033[0m"; FAIL=$((FAIL+1)); }
 info()  { echo -e "\033[34mℹ️  $1\033[0m"; }
 
 echo "============================================"
@@ -133,6 +133,8 @@ else
 fi
 
 # 10. Health endpoint
+# Wait for rate limit window to reset after test 9
+sleep 5
 info "Test 10: Health check endpoint"
 HEALTH=$(curl -s "$BASE_URL/health")
 if echo "$HEALTH" | grep -q '"status":"ok"'; then
