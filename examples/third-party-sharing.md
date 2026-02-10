@@ -94,9 +94,9 @@ An agent's **effective ADHP level** (what the caller actually gets) is the minim
     "level": "sensitive",
     "training_opt_out": true,
     "max_retention": "7d",
-    "content_logging": false,
+    "content_logging_opt_out": true,
     "delegation_policy": "same_or_higher",
-    "output_sanitization": true,
+    "output_sanitization_opt_in": true,
     "compliance": ["GDPR"],
     "third_party_sharing": {
       "enabled": true,

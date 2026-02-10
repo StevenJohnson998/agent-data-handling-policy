@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/StevenJohnson998/agent-data-handling-policy/schemas/adhp-v0.2.schema.json",
   "title": "ADHP Data Handling Policy",
-  "description": "Agent Data Handling Policy (ADHP) v0.2 - validates the data_handling object in an agent manifest",
+  "description": "Agent Data Handling Policy (ADHP) v0.2 - validates the adhp object in an agent manifest or MCP capability",
   "type": "object",
-  "required": ["level", "training_opt_out", "max_retention", "third_party_sharing"],
+  "required": ["level"],
   "properties": {
     "level": {
       "type": "string",
@@ -14,6 +14,18 @@
     "training_opt_out": {
       "type": "boolean",
       "description": "Agent commits to NOT using data for model training"
+    },
+    "third_party_opt_out": {
+      "type": "boolean",
+      "description": "Agent commits to NOT sharing data with third parties"
+    },
+    "content_logging_opt_out": {
+      "type": "boolean",
+      "description": "Agent commits to NOT logging request/response content"
+    },
+    "output_sanitization_opt_in": {
+      "type": "boolean",
+      "description": "Agent commits to scrubbing outputs of source data"
     },
     "max_retention": {
       "type": "string",
@@ -30,18 +42,10 @@
       "enum": ["1h", "4h", "8h", "24h"],
       "description": "Session duration when max_retention is 'session'"
     },
-    "content_logging": {
-      "type": "boolean",
-      "description": "Whether request/response content appears in logs"
-    },
     "delegation_policy": {
       "type": "string",
       "enum": ["none", "same_or_higher", "unrestricted"],
       "description": "Sub-agent delegation policy"
-    },
-    "output_sanitization": {
-      "type": "boolean",
-      "description": "Whether outputs are scrubbed of source data"
     },
     "compliance": {
       "type": "array",
@@ -82,11 +86,27 @@
     },
     "third_party_sharing": {
       "type": "object",
-      "required": ["enabled"],
+      "description": "Optional detailed third-party sharing information (extended format)",
       "properties": {
         "enabled": {
           "type": "boolean",
           "description": "Whether data is shared with any third party"
+        },
+        "purpose": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["analytics", "advertising", "improvement", "subprocessing", "legal", "resale"]
+          },
+          "description": "Why data is shared"
+        },
+        "sanitized": {
+          "type": "boolean",
+          "description": "Whether shared data is anonymized/stripped of PII"
+        },
+        "parties_disclosed": {
+          "type": "boolean",
+          "description": "Whether the list of third parties is publicly available"
         },
         "parties": {
           "type": "array",
@@ -106,21 +126,12 @@
               "purpose": {
                 "type": "string",
                 "enum": ["analytics", "advertising", "improvement", "subprocessing", "legal", "resale"],
-                "description": "Why data is shared"
-              },
-              "data_shared": {
-                "type": "array",
-                "items": { "type": "string" },
-                "description": "Categories of data shared"
+                "description": "Why data is shared with this party"
               },
               "adhp_level": {
                 "type": ["string", "null"],
                 "enum": ["open", "standard", "sensitive", "strict", "zero-trace", null],
                 "description": "Third party's ADHP level if known"
-              },
-              "registry_id": {
-                "type": "string",
-                "description": "Registry ID if type is 'agent'"
               }
             }
           }
@@ -146,9 +157,10 @@
       "then": {
         "properties": {
           "delegation_policy": { "const": "none" },
-          "content_logging": { "const": false },
+          "content_logging_opt_out": { "const": true },
           "max_retention": { "const": "none" },
-          "training_opt_out": { "const": true }
+          "training_opt_out": { "const": true },
+          "third_party_opt_out": { "const": true }
         }
       }
     },
@@ -156,11 +168,9 @@
       "if": { "properties": { "level": { "const": "strict" } } },
       "then": {
         "properties": {
-          "content_logging": { "const": false },
+          "content_logging_opt_out": { "const": true },
           "training_opt_out": { "const": true },
-          "third_party_sharing": {
-            "properties": { "enabled": { "const": false } }
-          }
+          "third_party_opt_out": { "const": true }
         }
       }
     }

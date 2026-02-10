@@ -4,25 +4,39 @@
   "version": "1.0.0",
   "endpoint": "https://api.finanalyzer.example.com",
   "protocol": "MCP",
-  "capabilities": ["financial-analysis", "document-parsing", "risk-assessment"],
+  "capabilities": [
+    "financial-analysis",
+    "document-parsing",
+    "risk-assessment"
+  ],
   "data_handling": {
     "level": "strict",
     "training_opt_out": true,
     "max_retention": "request",
-    "content_logging": false,
+    "content_logging_opt_out": true,
     "delegation_policy": "same_or_higher",
-    "output_sanitization": true,
-    "compliance": ["GDPR", "AI_ACT_EU"],
-    "pii_categories": ["email", "phone", "financial", "identity"],
-    "processing_jurisdiction": ["DE"],
-    "storage_jurisdiction": ["DE"],
-    "log_jurisdiction": ["DE"],
+    "output_sanitization_opt_in": true,
+    "compliance": [
+      "GDPR",
+      "AI_ACT_EU"
+    ],
+    "pii_categories": [
+      "email",
+      "phone",
+      "financial",
+      "identity"
+    ],
+    "processing_jurisdiction": [
+      "DE"
+    ],
+    "storage_jurisdiction": [
+      "DE"
+    ],
+    "log_jurisdiction": [
+      "DE"
+    ],
     "execution_environment": "containerized",
     "certification": null,
-    "third_party_sharing": {
-      "enabled": false,
-      "parties": [],
-      "opt_out_available": true
-    }
+    "third_party_opt_out": true
   }
 }

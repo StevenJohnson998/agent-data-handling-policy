@@ -1,6 +1,5 @@
 {
   "_comment": "A2A Agent Card with ADHP extension. Served at /.well-known/agent.json",
-
   "name": "FinanceAnalyzer Pro",
   "description": "Advanced financial document analysis",
   "url": "https://api.finanalyzer.example.com",
@@ -15,38 +14,60 @@
     "pushNotifications": false
   },
   "authentication": {
-    "schemes": ["OAuth2"],
+    "schemes": [
+      "OAuth2"
+    ],
     "credentials": null
   },
-  "defaultInputModes": ["text/plain", "application/pdf"],
-  "defaultOutputModes": ["text/plain", "application/json"],
+  "defaultInputModes": [
+    "text/plain",
+    "application/pdf"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
   "skills": [
     {
       "id": "financial-analysis",
       "name": "Financial Analysis",
       "description": "Analyze financial documents and extract key metrics",
-      "tags": ["finance", "analysis", "documents"]
+      "tags": [
+        "finance",
+        "analysis",
+        "documents"
+      ]
     },
     {
       "id": "risk-assessment",
       "name": "Risk Assessment",
       "description": "Evaluate financial risk from provided data",
-      "tags": ["finance", "risk"]
+      "tags": [
+        "finance",
+        "risk"
+      ]
     }
   ],
   "adhp": {
     "level": "strict",
     "training_opt_out": true,
     "max_retention": "request",
-    "content_logging": false,
+    "content_logging_opt_out": true,
     "delegation_policy": "same_or_higher",
-    "output_sanitization": true,
-    "compliance": ["GDPR", "AI_ACT_EU"],
-    "pii_categories": ["email", "financial", "identity"],
-    "processing_jurisdiction": ["DE"],
+    "output_sanitization_opt_in": true,
+    "compliance": [
+      "GDPR",
+      "AI_ACT_EU"
+    ],
+    "pii_categories": [
+      "email",
+      "financial",
+      "identity"
+    ],
+    "processing_jurisdiction": [
+      "DE"
+    ],
     "execution_environment": "containerized",
-    "third_party_sharing": {
-      "enabled": false
-    }
+    "third_party_opt_out": true
   }
 }
