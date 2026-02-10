@@ -8,7 +8,7 @@
 <meta property="og:title" content="ADHP — MCP Handshake Playground">
 <meta property="og:description" content="Privacy nutrition labels for AI agents. Interactive demo of ADHP extending the MCP protocol.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://iamagique.dev/adhp-demo/playground">
+<meta property="og:url" content="https://adhp-demo.iamagique.dev/playground">
 <link rel="icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,6 +43,7 @@ function ADHPDemo() {
   const [clientNoThirdParty, setClientNoThirdParty] = useState(true);
   const [clientNoTraining, setClientNoTraining] = useState(true);
   const [clientJurisdiction, setClientJurisdiction] = useState(["DE"]);
+  const [clientStorageJurisdiction, setClientStorageJurisdiction] = useState(["DE"]);
 
   const [serverLevel, setServerLevel] = useState("strict");
   const [serverCompliance, setServerCompliance] = useState(["GDPR","HIPAA"]);
@@ -139,15 +140,24 @@ function ADHPDemo() {
     if (clientJurisdiction.length > 0 && serverJurisdiction.length > 0) {
       const matched = serverJurisdiction.filter(j => clientJurisdiction.includes(j));
       if (matched.length > 0) {
-        checks.push({ pass:true, msg:`Jurisdiction: ${matched.join(", ")} matched` });
+        checks.push({ pass:true, msg:`Processing jurisdiction: server [${serverJurisdiction.join(", ")}] ∩ accepted [${clientJurisdiction.join(", ")}] → ${matched.join(", ")}` });
       } else {
         failures.push(true);
-        checks.push({ pass:false, msg:`Jurisdiction: server [${serverJurisdiction.join(", ")}] ∉ required [${clientJurisdiction.join(", ")}]` });
+        checks.push({ pass:false, msg:`Processing jurisdiction: server [${serverJurisdiction.join(", ")}] ∉ accepted [${clientJurisdiction.join(", ")}]` });
+      }
+    }
+    if (clientStorageJurisdiction.length > 0 && serverStorageJurisdiction.length > 0) {
+      const matched = serverStorageJurisdiction.filter(j => clientStorageJurisdiction.includes(j));
+      if (matched.length > 0) {
+        checks.push({ pass:true, msg:`Storage jurisdiction: server [${serverStorageJurisdiction.join(", ")}] ∩ accepted [${clientStorageJurisdiction.join(", ")}] → ${matched.join(", ")}` });
+      } else {
+        failures.push(true);
+        checks.push({ pass:false, msg:`Storage jurisdiction: server [${serverStorageJurisdiction.join(", ")}] ∉ accepted [${clientStorageJurisdiction.join(", ")}]` });
       }
     }
     setResult({ pass: failures.length === 0, checks });
     setHasExecuted(true);
-  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, serverLevel, serverCompliance, serverTrainingOptOut, serverThirdParty, serverJurisdiction]);
+  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, serverLevel, serverCompliance, serverTrainingOptOut, serverThirdParty, serverJurisdiction, serverStorageJurisdiction]);
 
   const s = (obj) => obj; // style passthrough
 
@@ -192,6 +202,7 @@ function ADHPDemo() {
             <p style={s({ fontSize:"11px", color:"#555", margin:"4px 0 0 0" })}>Configure client requirements and server declarations, then execute the ADHP-extended MCP handshake</p>
           </div>
           <div style={s({ display:"flex", gap:"6px", flexWrap:"wrap", paddingTop:"4px" })}>
+            <LinkPill href="https://iamagique.dev">🏠 Home</LinkPill>
             <LinkPill href={REPO}>⭐ GitHub</LinkPill>
             <LinkPill href={REPO+"/blob/main/SPEC.md"}>📄 Spec v0.2</LinkPill>
             <LinkPill href={REPO+"/blob/main/IMPLEMENTATION-GUIDE.md"}>🔧 Implement</LinkPill>
@@ -227,8 +238,11 @@ function ADHPDemo() {
           <SectionLabel>Required Compliance</SectionLabel>
           <ChipSelect options={COMPLIANCE_OPTIONS} selected={clientCompliance} onChange={c => toggleList(clientCompliance, setClientCompliance, c)} />
 
-          <SectionLabel>Required Jurisdiction</SectionLabel>
+          <SectionLabel>Accepted Processing Jurisdictions</SectionLabel>
           <ChipSelect options={JURISDICTIONS} selected={clientJurisdiction} onChange={j => toggleList(clientJurisdiction, setClientJurisdiction, j)} />
+
+          <SectionLabel>Accepted Storage Jurisdictions</SectionLabel>
+          <ChipSelect options={JURISDICTIONS} selected={clientStorageJurisdiction} onChange={j => toggleList(clientStorageJurisdiction, setClientStorageJurisdiction, j)} />
 
           <SectionLabel>Policies</SectionLabel>
           <Toggle value={clientNoTraining} onChange={setClientNoTraining} label="No training" />
