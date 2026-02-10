@@ -26,3 +26,4 @@ private/
 # Docker
 *.log
 docker-compose.override.yml
+.claude
