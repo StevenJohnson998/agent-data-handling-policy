@@ -3,7 +3,7 @@ services:
     build: ./server
     container_name: adhp-demo-server
     ports:
-      - "127.0.0.1:8910:8000"
+      - "8910:8000"
     command: ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
     restart: unless-stopped
     read_only: true

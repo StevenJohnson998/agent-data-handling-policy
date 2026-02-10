@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADHP — MCP Handshake Playground</title>
+<meta name="description" content="Interactive demo of the Agent Data Handling Policy (ADHP) extending the MCP protocol handshake. Configure client requirements and server declarations, then check compliance.">
+<meta property="og:title" content="ADHP — MCP Handshake Playground">
+<meta property="og:description" content="Privacy nutrition labels for AI agents. Interactive demo of ADHP extending the MCP protocol.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://adhp-demo.iamagique.dev/playground">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; }
+#root { padding: 16px; max-width: 1440px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback } = React;
+
+const LEVELS = ["open", "standard", "sensitive", "strict", "zero-trace"];
+const LEVEL_COLORS = { "open":"#ef4444","standard":"#f97316","sensitive":"#eab308","strict":"#22c55e","zero-trace":"#06b6d4" };
+const COMPLIANCE_OPTIONS = ["GDPR","HIPAA","CCPA","AI_ACT_EU","POPIA","PIPEDA"];
+const PII_OPTIONS = ["email","phone","financial","health","identity","location","biometric"];
+const JURISDICTIONS = ["DE","FR","US","GB","CH","JP","SG","AU"];
+const RETENTION_OPTIONS = ["none","request","session","24h","7d","30d","unlimited"];
+const DELEGATION_OPTIONS = ["none","same_or_higher","unrestricted"];
+const ENVIRONMENT_OPTIONS = ["standard","containerized","TEE","enclave"];
+const REPO = "https://github.com/StevenJohnson998/agent-data-handling-policy";
+
+function ADHPDemo() {
+  const [clientMinLevel, setClientMinLevel] = useState("sensitive");
+  const [clientCompliance, setClientCompliance] = useState(["GDPR"]);
+  const [clientNoThirdParty, setClientNoThirdParty] = useState(true);
+  const [clientNoTraining, setClientNoTraining] = useState(true);
+  const [clientJurisdiction, setClientJurisdiction] = useState(["DE"]);
+
+  const [serverLevel, setServerLevel] = useState("strict");
+  const [serverCompliance, setServerCompliance] = useState(["GDPR","HIPAA"]);
+  const [serverTrainingOptOut, setServerTrainingOptOut] = useState(true);
+  const [serverRetention, setServerRetention] = useState("request");
+  const [serverContentLogging, setServerContentLogging] = useState(false);
+  const [serverDelegation, setServerDelegation] = useState("same_or_higher");
+  const [serverSanitization, setServerSanitization] = useState(true);
+  const [serverPii, setServerPii] = useState(["email","financial"]);
+  const [serverJurisdiction, setServerJurisdiction] = useState(["DE"]);
+  const [serverStorageJurisdiction, setServerStorageJurisdiction] = useState(["DE"]);
+  const [serverEnvironment, setServerEnvironment] = useState("containerized");
+  const [serverThirdParty, setServerThirdParty] = useState(false);
+
+  const [result, setResult] = useState(null);
+  const [hasExecuted, setHasExecuted] = useState(false);
+
+  const toggleList = (list, setList, item) => {
+    setList(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
+  };
+
+  const buildClientRequest = () => ({
+    jsonrpc: "2.0", id: 1, method: "initialize",
+    params: {
+      protocolVersion: "2025-03-26",
+      capabilities: { roots: { listChanged: true } },
+      clientInfo: { name: "ADHP Demo Client", version: "0.1.0" }
+    }
+  });
+
+  const buildServerResponse = () => ({
+    jsonrpc: "2.0", id: 1,
+    result: {
+      protocolVersion: "2025-03-26",
+      capabilities: {
+        tools: { listChanged: true }, resources: {},
+        adhp: {
+          level: serverLevel,
+          training_opt_out: serverTrainingOptOut,
+          max_retention: serverRetention,
+          content_logging: serverContentLogging,
+          delegation_policy: serverDelegation,
+          output_sanitization: serverSanitization,
+          compliance: serverCompliance,
+          pii_categories: serverPii,
+          processing_jurisdiction: serverJurisdiction,
+          storage_jurisdiction: serverStorageJurisdiction,
+          log_jurisdiction: serverStorageJurisdiction,
+          execution_environment: serverEnvironment,
+          third_party_sharing: { enabled: serverThirdParty }
+        }
+      },
+      serverInfo: { name: "Demo Agent", version: "1.0.0" }
+    }
+  });
+
+  const executeHandshake = useCallback(() => {
+    const failures = [];
+    const checks = [];
+    const sIdx = LEVELS.indexOf(serverLevel);
+    const cIdx = LEVELS.indexOf(clientMinLevel);
+
+    if (sIdx >= cIdx) {
+      checks.push({ pass:true, msg:`Level: server "${serverLevel}" (${sIdx}) ≥ required "${clientMinLevel}" (${cIdx})` });
+    } else {
+      failures.push(true);
+      checks.push({ pass:false, msg:`Level: server "${serverLevel}" (${sIdx}) < required "${clientMinLevel}" (${cIdx})` });
+    }
+    if (clientNoTraining) {
+      if (serverTrainingOptOut) {
+        checks.push({ pass:true, msg:"Training opt-out: declared by server" });
+      } else {
+        failures.push(true);
+        checks.push({ pass:false, msg:"Training opt-out: not declared (client requires it)" });
+      }
+    }
+    const missingCompliance = clientCompliance.filter(c => !serverCompliance.includes(c));
+    if (clientCompliance.length > 0) {
+      if (missingCompliance.length === 0) {
+        checks.push({ pass:true, msg:`Compliance: ${clientCompliance.join(", ")} — all declared` });
+      } else {
+        failures.push(true);
+        checks.push({ pass:false, msg:`Compliance: missing ${missingCompliance.join(", ")}` });
+      }
+    }
+    if (clientNoThirdParty) {
+      if (!serverThirdParty) {
+        checks.push({ pass:true, msg:"Third-party sharing: disabled" });
+      } else {
+        failures.push(true);
+        checks.push({ pass:false, msg:"Third-party sharing: enabled (client requires disabled)" });
+      }
+    }
+    if (clientJurisdiction.length > 0 && serverJurisdiction.length > 0) {
+      const matched = serverJurisdiction.filter(j => clientJurisdiction.includes(j));
+      if (matched.length > 0) {
+        checks.push({ pass:true, msg:`Jurisdiction: ${matched.join(", ")} matched` });
+      } else {
+        failures.push(true);
+        checks.push({ pass:false, msg:`Jurisdiction: server [${serverJurisdiction.join(", ")}] ∉ required [${clientJurisdiction.join(", ")}]` });
+      }
+    }
+    setResult({ pass: failures.length === 0, checks });
+    setHasExecuted(true);
+  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, serverLevel, serverCompliance, serverTrainingOptOut, serverThirdParty, serverJurisdiction]);
+
+  const s = (obj) => obj; // style passthrough
+
+  const LevelBadge = ({ level }) => (
+    <span style={s({ background:LEVEL_COLORS[level], color:level==="sensitive"?"#1a1a1a":"#fff", padding:"2px 10px", borderRadius:"4px", fontSize:"11px", fontWeight:700, letterSpacing:"0.5px", textTransform:"uppercase", fontFamily:"'JetBrains Mono',monospace", display:"inline-block" })}>{level}</span>
+  );
+
+  const ChipSelect = ({ options, selected, onChange, color="#3b82f6" }) => (
+    <div style={s({ display:"flex", flexWrap:"wrap", gap:"4px" })}>
+      {options.map(opt => {
+        const active = selected.includes(opt);
+        return <button key={opt} onClick={() => onChange(opt)} style={s({ padding:"3px 8px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", border:`1px solid ${active?color:"#333"}`, background:active?color+"22":"transparent", color:active?color:"#888", borderRadius:"3px", cursor:"pointer", fontWeight:active?700:400, transition:"all 0.15s" })}>{opt}</button>;
+      })}
+    </div>
+  );
+
+  const Toggle = ({ value, onChange, label }) => (
+    <div style={s({ display:"flex", alignItems:"center", gap:"8px", marginBottom:"6px" })}>
+      <button onClick={() => onChange(!value)} style={s({ width:"36px", height:"20px", borderRadius:"10px", background:value?"#22c55e":"#444", border:"none", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 })}>
+        <div style={s({ width:"16px", height:"16px", borderRadius:"50%", background:"#fff", position:"absolute", top:"2px", left:value?"18px":"2px", transition:"left 0.2s" })} />
+      </button>
+      <span style={s({ fontSize:"12px", color:"#ccc", fontFamily:"'JetBrains Mono',monospace" })}>{label}</span>
+    </div>
+  );
+
+  const SectionLabel = ({ children }) => (
+    <div style={s({ fontSize:"11px", color:"#666", fontFamily:"'JetBrains Mono',monospace", marginBottom:"4px", marginTop:"10px", textTransform:"uppercase", letterSpacing:"1px" })}>{children}</div>
+  );
+
+  const LinkPill = ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" style={s({ display:"inline-flex", alignItems:"center", gap:"4px", padding:"4px 10px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", color:"#999", background:"#151515", border:"1px solid #2a2a2a", borderRadius:"4px", textDecoration:"none", whiteSpace:"nowrap" })}>{children}</a>
+  );
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={s({ marginBottom:"14px", borderBottom:"1px solid #1a1a1a", paddingBottom:"12px" })}>
+        <div style={s({ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:"8px" })}>
+          <div>
+            <div style={s({ fontSize:"10px", color:"#555", letterSpacing:"3px", textTransform:"uppercase", marginBottom:"2px" })}>Agent Data Handling Policy</div>
+            <h1 style={s({ fontSize:"22px", fontWeight:700, margin:0, fontFamily:"'Space Grotesk',sans-serif", color:"#fff" })}>MCP Handshake Playground</h1>
+            <p style={s({ fontSize:"11px", color:"#555", margin:"4px 0 0 0" })}>Configure client requirements and server declarations, then execute the ADHP-extended MCP handshake</p>
+          </div>
+          <div style={s({ display:"flex", gap:"6px", flexWrap:"wrap", paddingTop:"4px" })}>
+            <LinkPill href={REPO}>⭐ GitHub</LinkPill>
+            <LinkPill href={REPO+"/blob/main/SPEC.md"}>📄 Spec v0.2</LinkPill>
+            <LinkPill href={REPO+"/blob/main/IMPLEMENTATION-GUIDE.md"}>🔧 Implement</LinkPill>
+            <LinkPill href={REPO+"/discussions"}>💬 Discuss</LinkPill>
+          </div>
+        </div>
+        <div style={s({ marginTop:"10px", padding:"8px 12px", background:"#111", border:"1px solid #1e1e1e", borderRadius:"6px", fontSize:"11px", color:"#666", lineHeight:"1.6" })}>
+          <strong style={s({ color:"#999" })}>How it works:</strong>{" "}
+          During the <a href="https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/lifecycle/" target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>MCP initialize handshake</a>,
+          the server returns an <code style={s({ color:"#f97316", background:"#1a1200", padding:"1px 4px", borderRadius:"2px", fontSize:"10px" })}>adhp</code> object inside <code style={s({ color:"#f97316", background:"#1a1200", padding:"1px 4px", borderRadius:"2px", fontSize:"10px" })}>capabilities</code>
+          {" "}— a privacy label for AI agents. The client checks these declarations <em>before sending any data</em>.
+          No declaration = assume <LevelBadge level="open" /> (worst case).
+          See our <a href={REPO+"/blob/main/SPEC.md"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>specifications on GitHub</a> for more info.
+        </div>
+      </div>
+
+      {/* Main Grid */}
+      <div style={s({ display:"grid", gridTemplateColumns:"220px 1fr 220px", gap:"12px" })}>
+
+        {/* LEFT — Client */}
+        <div style={s({ background:"#111", border:"1px solid #1e3a5f", borderRadius:"8px", padding:"14px" })}>
+          <div style={s({ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" })}>
+            <div style={s({ width:"8px", height:"8px", borderRadius:"50%", background:"#3b82f6" })} />
+            <span style={s({ fontSize:"13px", fontWeight:700, color:"#3b82f6" })}>MCP Client</span>
+          </div>
+          <div style={s({ fontSize:"10px", color:"#444", marginBottom:"10px", lineHeight:"1.4" })}>The data sender. Sets minimum standards a server must meet before any data is transmitted.</div>
+
+          <SectionLabel>Minimum Level</SectionLabel>
+          <div style={s({ display:"flex", flexDirection:"column", gap:"2px", marginBottom:"6px" })}>
+            {LEVELS.map(l => <button key={l} onClick={() => setClientMinLevel(l)} style={s({ padding:"4px 8px", fontSize:"11px", textAlign:"left", fontFamily:"'JetBrains Mono',monospace", background:clientMinLevel===l?LEVEL_COLORS[l]+"22":"transparent", border:`1px solid ${clientMinLevel===l?LEVEL_COLORS[l]:"#222"}`, color:clientMinLevel===l?LEVEL_COLORS[l]:"#555", borderRadius:"3px", cursor:"pointer" })}>{l} ({LEVELS.indexOf(l)})</button>)}
+          </div>
+
+          <SectionLabel>Required Compliance</SectionLabel>
+          <ChipSelect options={COMPLIANCE_OPTIONS} selected={clientCompliance} onChange={c => toggleList(clientCompliance, setClientCompliance, c)} />
+
+          <SectionLabel>Required Jurisdiction</SectionLabel>
+          <ChipSelect options={JURISDICTIONS} selected={clientJurisdiction} onChange={j => toggleList(clientJurisdiction, setClientJurisdiction, j)} />
+
+          <SectionLabel>Policies</SectionLabel>
+          <Toggle value={clientNoTraining} onChange={setClientNoTraining} label="No training" />
+          <Toggle value={clientNoThirdParty} onChange={setClientNoThirdParty} label="No 3rd-party" />
+        </div>
+
+        {/* CENTER */}
+        <div style={s({ display:"flex", flexDirection:"column", gap:"12px" })}>
+          <div style={s({ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" })}>
+            <div style={s({ background:"#111", border:"1px solid #1e3a5f", borderRadius:"8px", padding:"12px", display:"flex", flexDirection:"column" })}>
+              <div style={s({ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px" })}>
+                <span style={s({ fontSize:"10px", color:"#3b82f6", letterSpacing:"1px", textTransform:"uppercase", fontWeight:700 })}>① Client → Request</span>
+                <span style={s({ fontSize:"9px", color:"#333" })}>JSON-RPC 2.0</span>
+              </div>
+              <pre style={s({ fontSize:"10.5px", color:"#8b949e", margin:0, overflow:"auto", minHeight:"380px", lineHeight:"1.6", whiteSpace:"pre-wrap", wordBreak:"break-all" })}>{JSON.stringify(buildClientRequest(), null, 2)}</pre>
+            </div>
+            <div style={s({ background:"#111", border:"1px solid #2d1e0f", borderRadius:"8px", padding:"12px", display:"flex", flexDirection:"column" })}>
+              <div style={s({ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px" })}>
+                <span style={s({ fontSize:"10px", color:"#f97316", letterSpacing:"1px", textTransform:"uppercase", fontWeight:700 })}>② Server → Response + ADHP</span>
+                <span style={s({ fontSize:"9px", color:"#333" })}>JSON-RPC 2.0</span>
+              </div>
+              <pre style={s({ fontSize:"10.5px", color:"#8b949e", margin:0, overflow:"auto", minHeight:"380px", lineHeight:"1.6", whiteSpace:"pre-wrap", wordBreak:"break-all" })}>{JSON.stringify(buildServerResponse(), null, 2)}</pre>
+            </div>
+          </div>
+
+          <button onClick={executeHandshake} style={s({ padding:"12px 24px", background:"linear-gradient(135deg,#3b82f6,#8b5cf6)", color:"#fff", border:"none", borderRadius:"6px", fontSize:"14px", fontWeight:700, fontFamily:"'Space Grotesk',sans-serif", cursor:"pointer", letterSpacing:"0.5px", boxShadow:"0 0 24px rgba(59,130,246,0.25)" })}>
+            ③ Check ADHP Compliance
+          </button>
+
+          <div style={s({ background:"#111", border:`1px solid ${!hasExecuted?"#222":result?.pass?"#166534":"#7f1d1d"}`, borderRadius:"8px", padding:"14px", minHeight:"120px", transition:"border-color 0.3s" })}>
+            {!hasExecuted ? (
+              <div style={s({ color:"#444", fontSize:"12px", textAlign:"center", paddingTop:"30px" })}>
+                Configure client requirements & server declarations, then click <strong style={s({ color:"#666" })}>③ Check ADHP Compliance</strong>
+              </div>
+            ) : (
+              <div>
+                <div style={s({ fontSize:"18px", marginBottom:"10px" })}>
+                  {result.pass
+                    ? <span><span style={s({ color:"#22c55e", fontWeight:700 })}>✅ PASS</span><span style={s({ color:"#666", fontSize:"12px", marginLeft:"8px" })}>Server meets all requirements → connection proceeds</span></span>
+                    : <span><span style={s({ color:"#ef4444", fontWeight:700 })}>❌ FAIL</span><span style={s({ color:"#666", fontSize:"12px", marginLeft:"8px" })}>Server does not meet requirements → client disconnects</span></span>
+                  }
+                </div>
+                <div style={s({ display:"flex", flexDirection:"column", gap:"3px", marginBottom:"10px" })}>
+                  {result.checks.map((c,i) => (
+                    <div key={i} style={s({ fontSize:"11px", color:c.pass?"#4ade80":"#fca5a5", paddingLeft:"12px", borderLeft:`2px solid ${c.pass?"#166534":"#7f1d1d"}` })}>
+                      {c.pass?"✓":"✗"} {c.msg}
+                    </div>
+                  ))}
+                </div>
+                <div style={s({ fontSize:"10px", color:"#444", borderTop:"1px solid #1a1a1a", paddingTop:"8px" })}>
+                  {result.pass
+                    ? <span>The MCP connection proceeds. Client can now send tool calls and data. This is <a href={REPO+"/blob/main/SPEC.md#11-enforcement-architecture"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>protocol-level enforcement</a> — the first layer of the ADHP enforcement architecture.</span>
+                    : <span>The client disconnects — no data is ever sent to a non-compliant server. Adjust the server's declarations or relax the client's requirements. See <a href={REPO+"/blob/main/SPEC.md#3-data-handling-levels"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>level definitions</a> and <a href={REPO+"/blob/main/SPEC.md#9-default-behavior"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>default behavior rules</a>.</span>
+                  }
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT — Server */}
+        <div style={s({ background:"#111", border:"1px solid #2d1e0f", borderRadius:"8px", padding:"14px" })}>
+          <div style={s({ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" })}>
+            <div style={s({ width:"8px", height:"8px", borderRadius:"50%", background:"#f97316" })} />
+            <span style={s({ fontSize:"13px", fontWeight:700, color:"#f97316" })}>MCP Server</span>
+          </div>
+          <div style={s({ fontSize:"10px", color:"#444", marginBottom:"10px", lineHeight:"1.4" })}>The agent. Declares its data handling practices via ADHP in the initialize response.</div>
+
+          <SectionLabel>ADHP Level</SectionLabel>
+          <div style={s({ display:"flex", flexDirection:"column", gap:"2px", marginBottom:"6px" })}>
+            {LEVELS.map(l => <button key={l} onClick={() => setServerLevel(l)} style={s({ padding:"4px 8px", fontSize:"11px", textAlign:"left", fontFamily:"'JetBrains Mono',monospace", background:serverLevel===l?LEVEL_COLORS[l]+"22":"transparent", border:`1px solid ${serverLevel===l?LEVEL_COLORS[l]:"#222"}`, color:serverLevel===l?LEVEL_COLORS[l]:"#555", borderRadius:"3px", cursor:"pointer" })}>{l} ({LEVELS.indexOf(l)})</button>)}
+          </div>
+
+          <SectionLabel>Compliance</SectionLabel>
+          <ChipSelect options={COMPLIANCE_OPTIONS} selected={serverCompliance} onChange={c => toggleList(serverCompliance, setServerCompliance, c)} color="#f97316" />
+
+          <SectionLabel>Processing Jurisdiction</SectionLabel>
+          <ChipSelect options={JURISDICTIONS} selected={serverJurisdiction} onChange={j => toggleList(serverJurisdiction, setServerJurisdiction, j)} color="#f97316" />
+
+          <SectionLabel>Storage Jurisdiction</SectionLabel>
+          <ChipSelect options={JURISDICTIONS} selected={serverStorageJurisdiction} onChange={j => toggleList(serverStorageJurisdiction, setServerStorageJurisdiction, j)} color="#f97316" />
+
+          <SectionLabel>PII Categories</SectionLabel>
+          <ChipSelect options={PII_OPTIONS} selected={serverPii} onChange={p => toggleList(serverPii, setServerPii, p)} color="#f97316" />
+
+          <SectionLabel>Retention</SectionLabel>
+          <select value={serverRetention} onChange={e => setServerRetention(e.target.value)} style={s({ width:"100%", padding:"4px 6px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", background:"#0a0a0a", color:"#ccc", border:"1px solid #333", borderRadius:"3px" })}>
+            {RETENTION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+
+          <SectionLabel>Delegation</SectionLabel>
+          <select value={serverDelegation} onChange={e => setServerDelegation(e.target.value)} style={s({ width:"100%", padding:"4px 6px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", background:"#0a0a0a", color:"#ccc", border:"1px solid #333", borderRadius:"3px" })}>
+            {DELEGATION_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+
+          <SectionLabel>Environment</SectionLabel>
+          <select value={serverEnvironment} onChange={e => setServerEnvironment(e.target.value)} style={s({ width:"100%", padding:"4px 6px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", background:"#0a0a0a", color:"#ccc", border:"1px solid #333", borderRadius:"3px" })}>
+            {ENVIRONMENT_OPTIONS.map(ev => <option key={ev} value={ev}>{ev}</option>)}
+          </select>
+
+          <SectionLabel>Policies</SectionLabel>
+          <Toggle value={serverTrainingOptOut} onChange={setServerTrainingOptOut} label="Training opt-out" />
+          <Toggle value={serverSanitization} onChange={setServerSanitization} label="Output sanitization" />
+          <Toggle value={serverContentLogging} onChange={setServerContentLogging} label="Content logging" />
+          <Toggle value={serverThirdParty} onChange={setServerThirdParty} label="3rd-party sharing" />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={s({ textAlign:"center", marginTop:"16px", paddingTop:"12px", borderTop:"1px solid #1a1a1a", fontSize:"10px", color:"#333" })}>
+        ADHP v0.2.0 ·{" "}
+        <a href={REPO} target="_blank" rel="noopener noreferrer" style={s({ color:"#444", textDecoration:"none" })}>GitHub</a> ·{" "}
+        <a href={REPO+"/blob/main/SPEC.md"} target="_blank" rel="noopener noreferrer" style={s({ color:"#444", textDecoration:"none" })}>Specification</a> ·{" "}
+        <a href={REPO+"/discussions"} target="_blank" rel="noopener noreferrer" style={s({ color:"#444", textDecoration:"none" })}>Discussions</a>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<ADHPDemo />);
+</script>
+</body>
+</html>
