@@ -24,7 +24,7 @@ ADHP is an open specification that lets AI agents declare their data handling pr
 
 An orchestrator reads this and knows: *this agent won't train on my data, deletes it after each request, complies with GDPR and HIPAA, protects email/financial/health data, processes in Germany, and doesn't share with anyone.*
 
-> **🎮 [Try the interactive playground](https://adhp-demo.iamagique.dev/playground)** — configure client requirements and server declarations, then see ADHP compliance checking in action.
+> **🎮 [Try the interactive playground](https://iamagique.dev/adhp-demo/playground)** — configure client requirements and server declarations, then see ADHP compliance checking in action.
 
 ---
 
@@ -203,7 +203,7 @@ For [A2A (Agent-to-Agent)](https://google.github.io/A2A/) agents, ADHP extends t
 
 ### Interactive playground
 
-**[adhp-demo.iamagique.dev/playground](https://adhp-demo.iamagique.dev/playground)** — a browser-based demo where you can configure MCP client requirements and server ADHP declarations, then execute the handshake to see pass/fail compliance checking with detailed results.
+**[adhp-demo.iamagique.dev/playground](https://iamagique.dev/adhp-demo/playground)** — a browser-based demo where you can configure MCP client requirements and server ADHP declarations, then execute the handshake to see pass/fail compliance checking with detailed results.
 
 ### Validate a delegation chain
 
