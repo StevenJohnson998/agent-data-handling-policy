@@ -1,0 +1,19 @@
+{
+  "_comment": "Zero-trace agent — maximum privacy, no persistence, no delegation",
+  "server_name": "SecureVault Processor",
+  "server_version": "1.0.0",
+  "adhp": {
+    "level": "zero-trace",
+    "training_opt_out": true,
+    "max_retention": "none",
+    "content_logging": false,
+    "delegation_policy": "none",
+    "output_sanitization": true,
+    "compliance": ["GDPR", "HIPAA", "AI_ACT_EU"],
+    "pii_categories": ["email", "phone", "financial", "health", "identity", "location", "biometric"],
+    "processing_jurisdiction": ["CH"],
+    "storage_jurisdiction": [],
+    "execution_environment": "TEE",
+    "third_party_sharing": { "enabled": false }
+  }
+}

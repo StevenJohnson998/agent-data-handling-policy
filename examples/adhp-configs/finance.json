@@ -1,0 +1,19 @@
+{
+  "_comment": "Finance agent — GDPR compliant, EU-only processing",
+  "server_name": "FinanceAnalyzer Pro",
+  "server_version": "1.0.0",
+  "adhp": {
+    "level": "strict",
+    "training_opt_out": true,
+    "max_retention": "request",
+    "content_logging": false,
+    "delegation_policy": "same_or_higher",
+    "output_sanitization": true,
+    "compliance": ["GDPR", "AI_ACT_EU"],
+    "pii_categories": ["email", "financial", "identity"],
+    "processing_jurisdiction": ["DE", "FR"],
+    "storage_jurisdiction": ["DE"],
+    "execution_environment": "containerized",
+    "third_party_sharing": { "enabled": false }
+  }
+}

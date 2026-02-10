@@ -1,0 +1,20 @@
+{
+  "_comment": "Healthcare agent — HIPAA compliant, strict data handling",
+  "server_name": "PatientDataAnalyzer",
+  "server_version": "1.0.0",
+  "adhp": {
+    "level": "strict",
+    "training_opt_out": true,
+    "max_retention": "request",
+    "content_logging": false,
+    "delegation_policy": "same_or_higher",
+    "output_sanitization": true,
+    "compliance": ["HIPAA", "GDPR"],
+    "pii_categories": ["health", "identity", "email"],
+    "processing_jurisdiction": ["US"],
+    "storage_jurisdiction": ["US"],
+    "log_jurisdiction": ["US"],
+    "execution_environment": "TEE",
+    "third_party_sharing": { "enabled": false }
+  }
+}

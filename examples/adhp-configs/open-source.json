@@ -1,0 +1,18 @@
+{
+  "_comment": "Open-source agent — no restrictions",
+  "server_name": "OpenCodeHelper",
+  "server_version": "3.2.0",
+  "adhp": {
+    "level": "open",
+    "training_opt_out": false,
+    "max_retention": "unlimited",
+    "content_logging": true,
+    "delegation_policy": "unrestricted",
+    "output_sanitization": false,
+    "compliance": [],
+    "pii_categories": [],
+    "processing_jurisdiction": [],
+    "execution_environment": "standard",
+    "third_party_sharing": { "enabled": true, "purpose": ["improvement", "analytics"] }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "server_name": "FinanceAnalyzer Pro",
+  "server_version": "1.0.0",
+  "adhp": {
+    "level": "strict",
+    "training_opt_out": true,
+    "max_retention": "request",
+    "content_logging": false,
+    "delegation_policy": "same_or_higher",
+    "output_sanitization": true,
+    "compliance": ["GDPR", "HIPAA"],
+    "pii_categories": ["email", "financial", "health"],
+    "processing_jurisdiction": ["DE"],
+    "storage_jurisdiction": ["DE"],
+    "log_jurisdiction": ["DE"],
+    "execution_environment": "containerized",
+    "third_party_sharing": {
+      "enabled": false,
+      "purpose": [],
+      "sanitized": true,
+      "parties": [],
+      "parties_disclosed": true,
+      "opt_out_available": true
+    }
+  }
+}

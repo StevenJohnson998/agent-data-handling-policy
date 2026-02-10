@@ -1,0 +1,20 @@
+# Add this block to your Caddyfile
+# Replace adhp-demo.yourdomain.com with your actual domain
+
+adhp-demo.yourdomain.com {
+    reverse_proxy localhost:8910
+
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "no-referrer"
+        Content-Security-Policy "default-src 'none'"
+        -Server
+    }
+
+    log {
+        output file /var/log/caddy/adhp-demo.log
+        format json
+    }
+}
