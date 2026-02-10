@@ -290,6 +290,11 @@ This specification is a draft seeking community feedback. It is not yet an offic
 3. Propose as MCP Extension (via SEP process)
 4. Seek AAIF adoption
 
+**v0.3 planned:**
+- Jurisdiction modeling: guaranteed vs. possible locations ([discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7))
+- Interactive playground improvements based on community feedback
+- Gateway policy language specification
+
 ---
 
 ## Discussions
@@ -297,6 +302,7 @@ This specification is a draft seeking community feedback. It is not yet an offic
 Architecture and enforcement are evolving through community input:
 
 - [ADHP architecture — a cross-cutting concern, not a layer](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6) — where ADHP sits in the agentic stack
+- [Jurisdiction modeling: guaranteed vs. possible](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7) — how servers should declare multi-region data handling
 - [Implementation & enforcement patterns](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5) — from self-declaration to cryptographic guarantees
 
 ---
