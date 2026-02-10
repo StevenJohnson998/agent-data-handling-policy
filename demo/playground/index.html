@@ -64,17 +64,23 @@ const TIPS = {
   c_environment: "The minimum execution environment required. Higher security environments: standard < containerized < TEE < enclave.",
   c_3rdparty: "If enabled, the server must declare that it does not share data with any third party.",
   c_training: "If enabled, the server must declare that it does not use data for model training.",
+  c_no_logging: "If enabled, the server must declare that request/response content does not appear in logs.",
+  c_sanitization: "If enabled, the server must declare that outputs are scrubbed of source data before returning.",
+  c_log_juris: "Countries where the server is allowed to keep logs. All server-declared log jurisdictions must be within this list.",
   // Server
   s_level: "The ADHP level this server declares. Defines the overall data handling posture.",
   s_compliance: "Regulatory frameworks this server declares compliance with.",
   s_proc_juris: "Jurisdictions where this server may send data for processing. If left empty, the client/gateway will consider that the server offers no guarantee.",
   s_stor_juris: "Jurisdictions where this server may store data. If left empty, the client/gateway will consider that the server offers no guarantee.",
+  s_log_juris: "Jurisdictions where this server may keep logs. If left empty, the client/gateway will consider that the server offers no guarantee.",
   s_pii: "PII categories this server declares protection for.",
   s_retention: "How long this server retains data after processing. 'none' = not retained; 'request' = deleted after each request; up to 'unlimited'.",
   s_delegation: "Whether this server may delegate tasks to other agents. 'none' = no delegation; 'same_or_higher' = only to agents at the same level or above.",
   s_environment: "The execution environment this server runs in. TEE and enclave provide hardware-level isolation.",
   s_3rdparty: "Whether this server shares data with third parties.",
   s_training: "Whether this server commits to NOT using data for model training.",
+  s_logging: "Whether the content of requests/responses appears in server logs. Metadata may still be logged.",
+  s_sanitization: "Whether this server scrubs outputs of source data before returning results.",
 };
 
 function ADHPDemo() {
@@ -88,6 +94,9 @@ function ADHPDemo() {
   const [clientMaxDelegation, setClientMaxDelegation] = useState("same_or_higher");
   const [clientMinEnvironment, setClientMinEnvironment] = useState("standard");
   const [clientRequiredPii, setClientRequiredPii] = useState([]);
+  const [clientNoContentLogging, setClientNoContentLogging] = useState(false);
+  const [clientRequireSanitization, setClientRequireSanitization] = useState(false);
+  const [clientLogJurisdiction, setClientLogJurisdiction] = useState([]);
   const [clientExpanded, setClientExpanded] = useState(false);
 
   const [serverLevel, setServerLevel] = useState("strict");
@@ -100,6 +109,9 @@ function ADHPDemo() {
   const [serverStorageJurisdiction, setServerStorageJurisdiction] = useState(["DE"]);
   const [serverEnvironment, setServerEnvironment] = useState("containerized");
   const [serverThirdParty, setServerThirdParty] = useState(false);
+  const [serverContentLogging, setServerContentLogging] = useState(false);
+  const [serverSanitization, setServerSanitization] = useState(true);
+  const [serverLogJurisdiction, setServerLogJurisdiction] = useState(["DE"]);
   const [serverExpanded, setServerExpanded] = useState(false);
 
   const [result, setResult] = useState(null);
@@ -133,7 +145,10 @@ function ADHPDemo() {
           pii_categories: serverPii,
           processing_jurisdiction: serverJurisdiction,
           storage_jurisdiction: serverStorageJurisdiction,
+          log_jurisdiction: serverLogJurisdiction,
           execution_environment: serverEnvironment,
+          content_logging: serverContentLogging,
+          output_sanitization: serverSanitization,
           third_party_sharing: { enabled: serverThirdParty }
         }
       },
@@ -233,9 +248,42 @@ function ADHPDemo() {
         }
       }
     }
+    // Log jurisdiction
+    if (clientLogJurisdiction.length > 0) {
+      if (serverLogJurisdiction.length === 0) {
+        failures.push(true);
+        checks.push({ pass:false, msg:"Log jurisdiction: server undeclared (assume worst case)" });
+      } else {
+        const unaccepted = serverLogJurisdiction.filter(j => !clientLogJurisdiction.includes(j));
+        if (unaccepted.length === 0) {
+          checks.push({ pass:true, msg:`Log jurisdiction: server [${serverLogJurisdiction.join(", ")}] all within accepted [${clientLogJurisdiction.join(", ")}]` });
+        } else {
+          failures.push(true);
+          checks.push({ pass:false, msg:`Log jurisdiction: server may log in [${unaccepted.join(", ")}] outside accepted [${clientLogJurisdiction.join(", ")}]` });
+        }
+      }
+    }
+    // Content logging
+    if (clientNoContentLogging) {
+      if (!serverContentLogging) {
+        checks.push({ pass:true, msg:"Content logging: disabled by server" });
+      } else {
+        failures.push(true);
+        checks.push({ pass:false, msg:"Content logging: enabled (required disabled)" });
+      }
+    }
+    // Output sanitization
+    if (clientRequireSanitization) {
+      if (serverSanitization) {
+        checks.push({ pass:true, msg:"Output sanitization: declared by server" });
+      } else {
+        failures.push(true);
+        checks.push({ pass:false, msg:"Output sanitization: not declared (required)" });
+      }
+    }
     setResult({ pass: failures.length === 0, checks });
     setHasExecuted(true);
-  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, clientMaxRetention, clientMaxDelegation, clientMinEnvironment, clientRequiredPii, serverLevel, serverCompliance, serverTrainingOptOut, serverRetention, serverDelegation, serverPii, serverThirdParty, serverJurisdiction, serverStorageJurisdiction, serverEnvironment]);
+  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, clientLogJurisdiction, clientMaxRetention, clientMaxDelegation, clientMinEnvironment, clientRequiredPii, clientNoContentLogging, clientRequireSanitization, serverLevel, serverCompliance, serverTrainingOptOut, serverRetention, serverDelegation, serverPii, serverThirdParty, serverJurisdiction, serverStorageJurisdiction, serverLogJurisdiction, serverEnvironment, serverContentLogging, serverSanitization]);
 
   const s = (obj) => obj;
 
@@ -345,6 +393,9 @@ function ADHPDemo() {
               <SectionLabel tip={TIPS.c_stor_juris}>Accepted Storage Jurisdictions</SectionLabel>
               <ChipSelect options={JURISDICTIONS} selected={clientStorageJurisdiction} onChange={j => toggleList(clientStorageJurisdiction, setClientStorageJurisdiction, j)} />
 
+              <SectionLabel tip={TIPS.c_log_juris}>Accepted Log Jurisdictions</SectionLabel>
+              <ChipSelect options={JURISDICTIONS} selected={clientLogJurisdiction} onChange={j => toggleList(clientLogJurisdiction, setClientLogJurisdiction, j)} />
+
               <SectionLabel tip={TIPS.c_pii}>Required PII Protection</SectionLabel>
               <ChipSelect options={PII_OPTIONS} selected={clientRequiredPii} onChange={p => toggleList(clientRequiredPii, setClientRequiredPii, p)} />
 
@@ -360,6 +411,8 @@ function ADHPDemo() {
               <SectionLabel>Policies</SectionLabel>
               <Toggle value={clientNoThirdParty} onChange={setClientNoThirdParty} label="No 3rd-party" tip={TIPS.c_3rdparty} />
               <Toggle value={clientNoTraining} onChange={setClientNoTraining} label="No training" tip={TIPS.c_training} />
+              <Toggle value={clientNoContentLogging} onChange={setClientNoContentLogging} label="No content logging" tip={TIPS.c_no_logging} />
+              <Toggle value={clientRequireSanitization} onChange={setClientRequireSanitization} label="Require sanitization" tip={TIPS.c_sanitization} />
             </div>
           )}
         </div>
@@ -444,6 +497,9 @@ function ADHPDemo() {
               <SectionLabel tip={TIPS.s_stor_juris}>Storage Jurisdiction</SectionLabel>
               <ChipSelect options={JURISDICTIONS} selected={serverStorageJurisdiction} onChange={j => toggleList(serverStorageJurisdiction, setServerStorageJurisdiction, j)} color="#f97316" />
 
+              <SectionLabel tip={TIPS.s_log_juris}>Log Jurisdiction</SectionLabel>
+              <ChipSelect options={JURISDICTIONS} selected={serverLogJurisdiction} onChange={j => toggleList(serverLogJurisdiction, setServerLogJurisdiction, j)} color="#f97316" />
+
               <SectionLabel tip={TIPS.s_pii}>PII Categories</SectionLabel>
               <ChipSelect options={PII_OPTIONS} selected={serverPii} onChange={p => toggleList(serverPii, setServerPii, p)} color="#f97316" />
 
@@ -459,6 +515,8 @@ function ADHPDemo() {
               <SectionLabel>Policies</SectionLabel>
               <Toggle value={serverThirdParty} onChange={setServerThirdParty} label="3rd-party sharing" tip={TIPS.s_3rdparty} />
               <Toggle value={serverTrainingOptOut} onChange={setServerTrainingOptOut} label="Training opt-out" tip={TIPS.s_training} />
+              <Toggle value={serverContentLogging} onChange={setServerContentLogging} label="Content logging" tip={TIPS.s_logging} />
+              <Toggle value={serverSanitization} onChange={setServerSanitization} label="Output sanitization" tip={TIPS.s_sanitization} />
             </div>
           )}
         </div>
