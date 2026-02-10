@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADHP — MCP Handshake Playground</title>
-<meta name="description" content="Interactive demo of the Agent Data Handling Policy (ADHP) extending the MCP protocol handshake. Configure client requirements and server declarations, then check compliance.">
+<meta name="description" content="Interactive demo of the Agent Data Handling Policy (ADHP) extending the MCP protocol handshake.">
 <meta property="og:title" content="ADHP — MCP Handshake Playground">
-<meta property="og:description" content="Privacy nutrition labels for AI agents. Interactive demo of ADHP extending the MCP protocol.">
+<meta property="og:description" content="Privacy labels for AI agents. Interactive demo of ADHP extending the MCP protocol.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://adhp-demo.iamagique.dev/playground">
+<meta property="og:url" content="https://iamagique.dev/adhp-demo/playground">
 <link rel="icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,25 +33,32 @@ const COMPLIANCE_OPTIONS = ["GDPR","HIPAA","CCPA","AI_ACT_EU","POPIA","PIPEDA"];
 const PII_OPTIONS = ["email","phone","financial","health","identity","location","biometric"];
 const JURISDICTIONS = ["DE","FR","US","GB","CH","JP","SG","AU"];
 const RETENTION_OPTIONS = ["none","request","session","24h","7d","30d","unlimited"];
+const RETENTION_ORDER = { "none":0,"request":1,"session":2,"24h":3,"7d":4,"30d":5,"unlimited":6 };
 const DELEGATION_OPTIONS = ["none","same_or_higher","unrestricted"];
+const DELEGATION_ORDER = { "none":0,"same_or_higher":1,"unrestricted":2 };
 const ENVIRONMENT_OPTIONS = ["standard","containerized","TEE","enclave"];
+const ENVIRONMENT_ORDER = { "standard":0,"containerized":1,"TEE":2,"enclave":3 };
 const REPO = "https://github.com/StevenJohnson998/agent-data-handling-policy";
 
 function ADHPDemo() {
+  // Client / Gateway requirements
   const [clientMinLevel, setClientMinLevel] = useState("sensitive");
   const [clientCompliance, setClientCompliance] = useState(["GDPR"]);
   const [clientNoThirdParty, setClientNoThirdParty] = useState(true);
   const [clientNoTraining, setClientNoTraining] = useState(true);
   const [clientJurisdiction, setClientJurisdiction] = useState(["DE"]);
   const [clientStorageJurisdiction, setClientStorageJurisdiction] = useState(["DE"]);
+  const [clientMaxRetention, setClientMaxRetention] = useState("session");
+  const [clientMaxDelegation, setClientMaxDelegation] = useState("same_or_higher");
+  const [clientMinEnvironment, setClientMinEnvironment] = useState("standard");
+  const [clientRequiredPii, setClientRequiredPii] = useState([]);
 
+  // Server declarations
   const [serverLevel, setServerLevel] = useState("strict");
   const [serverCompliance, setServerCompliance] = useState(["GDPR","HIPAA"]);
   const [serverTrainingOptOut, setServerTrainingOptOut] = useState(true);
   const [serverRetention, setServerRetention] = useState("request");
-  const [serverContentLogging, setServerContentLogging] = useState(false);
   const [serverDelegation, setServerDelegation] = useState("same_or_higher");
-  const [serverSanitization, setServerSanitization] = useState(true);
   const [serverPii, setServerPii] = useState(["email","financial"]);
   const [serverJurisdiction, setServerJurisdiction] = useState(["DE"]);
   const [serverStorageJurisdiction, setServerStorageJurisdiction] = useState(["DE"]);
@@ -84,14 +91,11 @@ function ADHPDemo() {
           level: serverLevel,
           training_opt_out: serverTrainingOptOut,
           max_retention: serverRetention,
-          content_logging: serverContentLogging,
           delegation_policy: serverDelegation,
-          output_sanitization: serverSanitization,
           compliance: serverCompliance,
           pii_categories: serverPii,
           processing_jurisdiction: serverJurisdiction,
           storage_jurisdiction: serverStorageJurisdiction,
-          log_jurisdiction: serverStorageJurisdiction,
           execution_environment: serverEnvironment,
           third_party_sharing: { enabled: serverThirdParty }
         }
@@ -106,20 +110,25 @@ function ADHPDemo() {
     const sIdx = LEVELS.indexOf(serverLevel);
     const cIdx = LEVELS.indexOf(clientMinLevel);
 
+    // Level
     if (sIdx >= cIdx) {
       checks.push({ pass:true, msg:`Level: server "${serverLevel}" (${sIdx}) ≥ required "${clientMinLevel}" (${cIdx})` });
     } else {
       failures.push(true);
       checks.push({ pass:false, msg:`Level: server "${serverLevel}" (${sIdx}) < required "${clientMinLevel}" (${cIdx})` });
     }
+
+    // Training
     if (clientNoTraining) {
       if (serverTrainingOptOut) {
         checks.push({ pass:true, msg:"Training opt-out: declared by server" });
       } else {
         failures.push(true);
-        checks.push({ pass:false, msg:"Training opt-out: not declared (client requires it)" });
+        checks.push({ pass:false, msg:"Training opt-out: not declared (required)" });
       }
     }
+
+    // Compliance
     const missingCompliance = clientCompliance.filter(c => !serverCompliance.includes(c));
     if (clientCompliance.length > 0) {
       if (missingCompliance.length === 0) {
@@ -129,37 +138,89 @@ function ADHPDemo() {
         checks.push({ pass:false, msg:`Compliance: missing ${missingCompliance.join(", ")}` });
       }
     }
+
+    // Third-party
     if (clientNoThirdParty) {
       if (!serverThirdParty) {
         checks.push({ pass:true, msg:"Third-party sharing: disabled" });
       } else {
         failures.push(true);
-        checks.push({ pass:false, msg:"Third-party sharing: enabled (client requires disabled)" });
+        checks.push({ pass:false, msg:"Third-party sharing: enabled (required disabled)" });
       }
     }
-    if (clientJurisdiction.length > 0 && serverJurisdiction.length > 0) {
-      const matched = serverJurisdiction.filter(j => clientJurisdiction.includes(j));
-      if (matched.length > 0) {
-        checks.push({ pass:true, msg:`Processing jurisdiction: server [${serverJurisdiction.join(", ")}] ∩ accepted [${clientJurisdiction.join(", ")}] → ${matched.join(", ")}` });
+
+    // Retention
+    if (RETENTION_ORDER[serverRetention] > RETENTION_ORDER[clientMaxRetention]) {
+      failures.push(true);
+      checks.push({ pass:false, msg:`Retention: server "${serverRetention}" exceeds max accepted "${clientMaxRetention}"` });
+    } else {
+      checks.push({ pass:true, msg:`Retention: server "${serverRetention}" ≤ max "${clientMaxRetention}"` });
+    }
+
+    // Delegation
+    if (DELEGATION_ORDER[serverDelegation] > DELEGATION_ORDER[clientMaxDelegation]) {
+      failures.push(true);
+      checks.push({ pass:false, msg:`Delegation: server "${serverDelegation}" exceeds max accepted "${clientMaxDelegation}"` });
+    } else {
+      checks.push({ pass:true, msg:`Delegation: server "${serverDelegation}" ≤ max "${clientMaxDelegation}"` });
+    }
+
+    // Environment
+    if (ENVIRONMENT_ORDER[serverEnvironment] < ENVIRONMENT_ORDER[clientMinEnvironment]) {
+      failures.push(true);
+      checks.push({ pass:false, msg:`Environment: server "${serverEnvironment}" below required "${clientMinEnvironment}"` });
+    } else {
+      checks.push({ pass:true, msg:`Environment: server "${serverEnvironment}" ≥ min "${clientMinEnvironment}"` });
+    }
+
+    // PII categories
+    if (clientRequiredPii.length > 0) {
+      const missingPii = clientRequiredPii.filter(p => !serverPii.includes(p));
+      if (missingPii.length === 0) {
+        checks.push({ pass:true, msg:`PII protection: ${clientRequiredPii.join(", ")} — all covered` });
       } else {
         failures.push(true);
-        checks.push({ pass:false, msg:`Processing jurisdiction: server [${serverJurisdiction.join(", ")}] ∉ accepted [${clientJurisdiction.join(", ")}]` });
+        checks.push({ pass:false, msg:`PII protection: missing coverage for ${missingPii.join(", ")}` });
       }
     }
-    if (clientStorageJurisdiction.length > 0 && serverStorageJurisdiction.length > 0) {
-      const matched = serverStorageJurisdiction.filter(j => clientStorageJurisdiction.includes(j));
-      if (matched.length > 0) {
-        checks.push({ pass:true, msg:`Storage jurisdiction: server [${serverStorageJurisdiction.join(", ")}] ∩ accepted [${clientStorageJurisdiction.join(", ")}] → ${matched.join(", ")}` });
-      } else {
+
+    // Processing jurisdiction
+    if (clientJurisdiction.length > 0) {
+      if (serverJurisdiction.length === 0) {
         failures.push(true);
-        checks.push({ pass:false, msg:`Storage jurisdiction: server [${serverStorageJurisdiction.join(", ")}] ∉ accepted [${clientStorageJurisdiction.join(", ")}]` });
+        checks.push({ pass:false, msg:"Processing jurisdiction: server does not declare any — undeclared (assume worst case)" });
+      } else {
+        const unaccepted = serverJurisdiction.filter(j => !clientJurisdiction.includes(j));
+        if (unaccepted.length === 0) {
+          checks.push({ pass:true, msg:`Processing jurisdiction: server [${serverJurisdiction.join(", ")}] all within accepted [${clientJurisdiction.join(", ")}]` });
+        } else {
+          failures.push(true);
+          checks.push({ pass:false, msg:`Processing jurisdiction: server may process in [${unaccepted.join(", ")}] outside accepted [${clientJurisdiction.join(", ")}]` });
+        }
       }
     }
+
+    // Storage jurisdiction
+    if (clientStorageJurisdiction.length > 0) {
+      if (serverStorageJurisdiction.length === 0) {
+        failures.push(true);
+        checks.push({ pass:false, msg:"Storage jurisdiction: server does not declare any — undeclared (assume worst case)" });
+      } else {
+        const unaccepted = serverStorageJurisdiction.filter(j => !clientStorageJurisdiction.includes(j));
+        if (unaccepted.length === 0) {
+          checks.push({ pass:true, msg:`Storage jurisdiction: server [${serverStorageJurisdiction.join(", ")}] all within accepted [${clientStorageJurisdiction.join(", ")}]` });
+        } else {
+          failures.push(true);
+          checks.push({ pass:false, msg:`Storage jurisdiction: server may store in [${unaccepted.join(", ")}] outside accepted [${clientStorageJurisdiction.join(", ")}]` });
+        }
+      }
+    }
+
     setResult({ pass: failures.length === 0, checks });
     setHasExecuted(true);
-  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, serverLevel, serverCompliance, serverTrainingOptOut, serverThirdParty, serverJurisdiction, serverStorageJurisdiction]);
+  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, clientMaxRetention, clientMaxDelegation, clientMinEnvironment, clientRequiredPii, serverLevel, serverCompliance, serverTrainingOptOut, serverRetention, serverDelegation, serverPii, serverThirdParty, serverJurisdiction, serverStorageJurisdiction, serverEnvironment]);
 
-  const s = (obj) => obj; // style passthrough
+  const s = (obj) => obj;
 
   const LevelBadge = ({ level }) => (
     <span style={s({ background:LEVEL_COLORS[level], color:level==="sensitive"?"#1a1a1a":"#fff", padding:"2px 10px", borderRadius:"4px", fontSize:"11px", fontWeight:700, letterSpacing:"0.5px", textTransform:"uppercase", fontFamily:"'JetBrains Mono',monospace", display:"inline-block" })}>{level}</span>
@@ -187,6 +248,12 @@ function ADHPDemo() {
     <div style={s({ fontSize:"11px", color:"#666", fontFamily:"'JetBrains Mono',monospace", marginBottom:"4px", marginTop:"10px", textTransform:"uppercase", letterSpacing:"1px" })}>{children}</div>
   );
 
+  const SelectInput = ({ value, onChange, options }) => (
+    <select value={value} onChange={e => onChange(e.target.value)} style={s({ width:"100%", padding:"4px 6px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", background:"#0a0a0a", color:"#ccc", border:"1px solid #333", borderRadius:"3px" })}>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+
   const LinkPill = ({ href, children }) => (
     <a href={href} target="_blank" rel="noopener noreferrer" style={s({ display:"inline-flex", alignItems:"center", gap:"4px", padding:"4px 10px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", color:"#999", background:"#151515", border:"1px solid #2a2a2a", borderRadius:"4px", textDecoration:"none", whiteSpace:"nowrap" })}>{children}</a>
   );
@@ -199,7 +266,7 @@ function ADHPDemo() {
           <div>
             <div style={s({ fontSize:"10px", color:"#555", letterSpacing:"3px", textTransform:"uppercase", marginBottom:"2px" })}>Agent Data Handling Policy</div>
             <h1 style={s({ fontSize:"22px", fontWeight:700, margin:0, fontFamily:"'Space Grotesk',sans-serif", color:"#fff" })}>MCP Handshake Playground</h1>
-            <p style={s({ fontSize:"11px", color:"#555", margin:"4px 0 0 0" })}>Configure client requirements and server declarations, then execute the ADHP-extended MCP handshake</p>
+            <p style={s({ fontSize:"11px", color:"#555", margin:"4px 0 0 0" })}>Configure client/gateway requirements and server declarations, then execute the ADHP-extended MCP handshake</p>
           </div>
           <div style={s({ display:"flex", gap:"6px", flexWrap:"wrap", paddingTop:"4px" })}>
             <LinkPill href="https://iamagique.dev">🏠 Home</LinkPill>
@@ -215,20 +282,22 @@ function ADHPDemo() {
           the server returns an <code style={s({ color:"#f97316", background:"#1a1200", padding:"1px 4px", borderRadius:"2px", fontSize:"10px" })}>adhp</code> object inside <code style={s({ color:"#f97316", background:"#1a1200", padding:"1px 4px", borderRadius:"2px", fontSize:"10px" })}>capabilities</code>
           {" "}— a privacy label for AI agents. The client checks these declarations <em>before sending any data</em>.
           No declaration = assume <LevelBadge level="open" /> (worst case).
-          See our <a href={REPO+"/blob/main/SPEC.md"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>specifications on GitHub</a> for more info.
+          This demo shows a selection of the most important ADHP fields — see our <a href={REPO+"/blob/main/SPEC.md"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>full specification on GitHub</a> for the complete property reference.
         </div>
       </div>
 
       {/* Main Grid */}
-      <div style={s({ display:"grid", gridTemplateColumns:"220px 1fr 220px", gap:"12px" })}>
+      <div style={s({ display:"grid", gridTemplateColumns:"240px 1fr 220px", gap:"12px" })}>
 
-        {/* LEFT — Client */}
+        {/* LEFT — Client / Gateway */}
         <div style={s({ background:"#111", border:"1px solid #1e3a5f", borderRadius:"8px", padding:"14px" })}>
           <div style={s({ display:"flex", alignItems:"center", gap:"8px", marginBottom:"4px" })}>
             <div style={s({ width:"8px", height:"8px", borderRadius:"50%", background:"#3b82f6" })} />
-            <span style={s({ fontSize:"13px", fontWeight:700, color:"#3b82f6" })}>MCP Client</span>
+            <span style={s({ fontSize:"13px", fontWeight:700, color:"#3b82f6" })}>MCP Client / Gateway</span>
           </div>
-          <div style={s({ fontSize:"10px", color:"#444", marginBottom:"10px", lineHeight:"1.4" })}>The data sender. Sets minimum standards a server must meet before any data is transmitted.</div>
+          <div style={s({ fontSize:"10px", color:"#444", marginBottom:"10px", lineHeight:"1.4" })}>
+            The data sender. Sets minimum standards a server must meet before any data is transmitted. All requirements are optional — the highest requirement between MCP client and gateway will be used.
+          </div>
 
           <SectionLabel>Minimum Level</SectionLabel>
           <div style={s({ display:"flex", flexDirection:"column", gap:"2px", marginBottom:"6px" })}>
@@ -244,9 +313,21 @@ function ADHPDemo() {
           <SectionLabel>Accepted Storage Jurisdictions</SectionLabel>
           <ChipSelect options={JURISDICTIONS} selected={clientStorageJurisdiction} onChange={j => toggleList(clientStorageJurisdiction, setClientStorageJurisdiction, j)} />
 
+          <SectionLabel>Required PII Protection</SectionLabel>
+          <ChipSelect options={PII_OPTIONS} selected={clientRequiredPii} onChange={p => toggleList(clientRequiredPii, setClientRequiredPii, p)} />
+
+          <SectionLabel>Max Retention</SectionLabel>
+          <SelectInput value={clientMaxRetention} onChange={setClientMaxRetention} options={RETENTION_OPTIONS} />
+
+          <SectionLabel>Max Delegation</SectionLabel>
+          <SelectInput value={clientMaxDelegation} onChange={setClientMaxDelegation} options={DELEGATION_OPTIONS} />
+
+          <SectionLabel>Min Environment</SectionLabel>
+          <SelectInput value={clientMinEnvironment} onChange={setClientMinEnvironment} options={ENVIRONMENT_OPTIONS} />
+
           <SectionLabel>Policies</SectionLabel>
-          <Toggle value={clientNoTraining} onChange={setClientNoTraining} label="No training" />
           <Toggle value={clientNoThirdParty} onChange={setClientNoThirdParty} label="No 3rd-party" />
+          <Toggle value={clientNoTraining} onChange={setClientNoTraining} label="No training" />
         </div>
 
         {/* CENTER */}
@@ -275,7 +356,7 @@ function ADHPDemo() {
           <div style={s({ background:"#111", border:`1px solid ${!hasExecuted?"#222":result?.pass?"#166534":"#7f1d1d"}`, borderRadius:"8px", padding:"14px", minHeight:"120px", transition:"border-color 0.3s" })}>
             {!hasExecuted ? (
               <div style={s({ color:"#444", fontSize:"12px", textAlign:"center", paddingTop:"30px" })}>
-                Configure client requirements & server declarations, then click <strong style={s({ color:"#666" })}>③ Check ADHP Compliance</strong>
+                Configure client/gateway requirements & server declarations, then click <strong style={s({ color:"#666" })}>③ Check ADHP Compliance</strong>
               </div>
             ) : (
               <div>
@@ -295,7 +376,7 @@ function ADHPDemo() {
                 <div style={s({ fontSize:"10px", color:"#444", borderTop:"1px solid #1a1a1a", paddingTop:"8px" })}>
                   {result.pass
                     ? <span>The MCP connection proceeds. Client can now send tool calls and data. This is <a href={REPO+"/blob/main/SPEC.md#11-enforcement-architecture"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>protocol-level enforcement</a> — the first layer of the ADHP enforcement architecture.</span>
-                    : <span>The client disconnects — no data is ever sent to a non-compliant server. Adjust the server's declarations or relax the client's requirements. See <a href={REPO+"/blob/main/SPEC.md#3-data-handling-levels"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>level definitions</a> and <a href={REPO+"/blob/main/SPEC.md#9-default-behavior"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>default behavior rules</a>.</span>
+                    : <span>The client disconnects — no data is ever sent to a non-compliant server. Adjust the server's declarations or relax the client/gateway requirements. See <a href={REPO+"/blob/main/SPEC.md#3-data-handling-levels"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>level definitions</a> and <a href={REPO+"/blob/main/SPEC.md#9-default-behavior"} target="_blank" rel="noopener noreferrer" style={s({ color:"#3b82f6", textDecoration:"none" })}>default behavior rules</a>.</span>
                   }
                 </div>
               </div>
@@ -329,25 +410,17 @@ function ADHPDemo() {
           <ChipSelect options={PII_OPTIONS} selected={serverPii} onChange={p => toggleList(serverPii, setServerPii, p)} color="#f97316" />
 
           <SectionLabel>Retention</SectionLabel>
-          <select value={serverRetention} onChange={e => setServerRetention(e.target.value)} style={s({ width:"100%", padding:"4px 6px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", background:"#0a0a0a", color:"#ccc", border:"1px solid #333", borderRadius:"3px" })}>
-            {RETENTION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+          <SelectInput value={serverRetention} onChange={setServerRetention} options={RETENTION_OPTIONS} />
 
           <SectionLabel>Delegation</SectionLabel>
-          <select value={serverDelegation} onChange={e => setServerDelegation(e.target.value)} style={s({ width:"100%", padding:"4px 6px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", background:"#0a0a0a", color:"#ccc", border:"1px solid #333", borderRadius:"3px" })}>
-            {DELEGATION_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+          <SelectInput value={serverDelegation} onChange={setServerDelegation} options={DELEGATION_OPTIONS} />
 
           <SectionLabel>Environment</SectionLabel>
-          <select value={serverEnvironment} onChange={e => setServerEnvironment(e.target.value)} style={s({ width:"100%", padding:"4px 6px", fontSize:"11px", fontFamily:"'JetBrains Mono',monospace", background:"#0a0a0a", color:"#ccc", border:"1px solid #333", borderRadius:"3px" })}>
-            {ENVIRONMENT_OPTIONS.map(ev => <option key={ev} value={ev}>{ev}</option>)}
-          </select>
+          <SelectInput value={serverEnvironment} onChange={setServerEnvironment} options={ENVIRONMENT_OPTIONS} />
 
           <SectionLabel>Policies</SectionLabel>
-          <Toggle value={serverTrainingOptOut} onChange={setServerTrainingOptOut} label="Training opt-out" />
-          <Toggle value={serverSanitization} onChange={setServerSanitization} label="Output sanitization" />
-          <Toggle value={serverContentLogging} onChange={setServerContentLogging} label="Content logging" />
           <Toggle value={serverThirdParty} onChange={setServerThirdParty} label="3rd-party sharing" />
+          <Toggle value={serverTrainingOptOut} onChange={setServerTrainingOptOut} label="Training opt-out" />
         </div>
       </div>
 
