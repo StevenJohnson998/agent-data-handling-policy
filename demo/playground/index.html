@@ -77,10 +77,10 @@ const TIPS = {
   s_retention: "How long this server retains data after processing. 'none' = not retained; 'request' = deleted after each request; up to 'unlimited'.",
   s_delegation: "Whether this server may delegate tasks to other agents. 'none' = no delegation; 'same_or_higher' = only to agents at the same level or above.",
   s_environment: "The execution environment this server runs in. TEE and enclave provide hardware-level isolation.",
-  s_3rdparty: "Whether this server shares data with third parties.",
-  s_training: "Whether this server commits to NOT using data for model training.",
-  s_logging: "Whether the content of requests/responses appears in server logs. Metadata may still be logged.",
-  s_sanitization: "Whether this server scrubs outputs of source data before returning results.",
+  s_3rdparty: "Whether this server commits to NOT sharing data with third parties. If not declared, assume data may be shared.",
+  s_training: "Whether this server commits to NOT using data for model training. If not declared, assume data may be used for training.",
+  s_logging: "Whether this server commits to NOT logging request/response content. If not declared, assume content may be logged.",
+  s_sanitization: "Whether this server commits to scrubbing outputs of source data before returning results. If not declared, assume outputs are not sanitized.",
 };
 
 function ADHPDemo() {
@@ -108,9 +108,9 @@ function ADHPDemo() {
   const [serverJurisdiction, setServerJurisdiction] = useState(["DE"]);
   const [serverStorageJurisdiction, setServerStorageJurisdiction] = useState(["DE"]);
   const [serverEnvironment, setServerEnvironment] = useState("containerized");
-  const [serverThirdParty, setServerThirdParty] = useState(false);
-  const [serverContentLogging, setServerContentLogging] = useState(false);
-  const [serverSanitization, setServerSanitization] = useState(true);
+  const [serverThirdPartyOptOut, setServerThirdPartyOptOut] = useState(true);
+  const [serverContentLoggingOptOut, setServerContentLoggingOptOut] = useState(true);
+  const [serverSanitizationOptIn, setServerSanitizationOptIn] = useState(true);
   const [serverLogJurisdiction, setServerLogJurisdiction] = useState(["DE"]);
   const [serverExpanded, setServerExpanded] = useState(false);
 
@@ -147,9 +147,9 @@ function ADHPDemo() {
           storage_jurisdiction: serverStorageJurisdiction,
           log_jurisdiction: serverLogJurisdiction,
           execution_environment: serverEnvironment,
-          content_logging: serverContentLogging,
-          output_sanitization: serverSanitization,
-          third_party_sharing: { enabled: serverThirdParty }
+          content_logging_opt_out: serverContentLoggingOptOut,
+          output_sanitization_opt_in: serverSanitizationOptIn,
+          third_party_opt_out: serverThirdPartyOptOut
         }
       },
       serverInfo: { name: "Demo Agent", version: "1.0.0" }
@@ -186,11 +186,11 @@ function ADHPDemo() {
       }
     }
     if (clientNoThirdParty) {
-      if (!serverThirdParty) {
-        checks.push({ pass:true, msg:"Third-party sharing: disabled" });
+      if (serverThirdPartyOptOut) {
+        checks.push({ pass:true, msg:"Third-party sharing: server opts out" });
       } else {
         failures.push(true);
-        checks.push({ pass:false, msg:"Third-party sharing: enabled (required disabled)" });
+        checks.push({ pass:false, msg:"Third-party sharing: server does not opt out (required)" });
       }
     }
     if (RETENTION_ORDER[serverRetention] > RETENTION_ORDER[clientMaxRetention]) {
@@ -265,25 +265,25 @@ function ADHPDemo() {
     }
     // Content logging
     if (clientNoContentLogging) {
-      if (!serverContentLogging) {
-        checks.push({ pass:true, msg:"Content logging: disabled by server" });
+      if (serverContentLoggingOptOut) {
+        checks.push({ pass:true, msg:"Content logging: server opts out" });
       } else {
         failures.push(true);
-        checks.push({ pass:false, msg:"Content logging: enabled (required disabled)" });
+        checks.push({ pass:false, msg:"Content logging: server does not opt out (required)" });
       }
     }
     // Output sanitization
     if (clientRequireSanitization) {
-      if (serverSanitization) {
-        checks.push({ pass:true, msg:"Output sanitization: declared by server" });
+      if (serverSanitizationOptIn) {
+        checks.push({ pass:true, msg:"Output sanitization: server opts in" });
       } else {
         failures.push(true);
-        checks.push({ pass:false, msg:"Output sanitization: not declared (required)" });
+        checks.push({ pass:false, msg:"Output sanitization: server does not opt in (required)" });
       }
     }
     setResult({ pass: failures.length === 0, checks });
     setHasExecuted(true);
-  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, clientLogJurisdiction, clientMaxRetention, clientMaxDelegation, clientMinEnvironment, clientRequiredPii, clientNoContentLogging, clientRequireSanitization, serverLevel, serverCompliance, serverTrainingOptOut, serverRetention, serverDelegation, serverPii, serverThirdParty, serverJurisdiction, serverStorageJurisdiction, serverLogJurisdiction, serverEnvironment, serverContentLogging, serverSanitization]);
+  }, [clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, clientLogJurisdiction, clientMaxRetention, clientMaxDelegation, clientMinEnvironment, clientRequiredPii, clientNoContentLogging, clientRequireSanitization, serverLevel, serverCompliance, serverTrainingOptOut, serverRetention, serverDelegation, serverPii, serverThirdPartyOptOut, serverJurisdiction, serverStorageJurisdiction, serverLogJurisdiction, serverEnvironment, serverContentLoggingOptOut, serverSanitizationOptIn]);
 
   const s = (obj) => obj;
 
@@ -513,10 +513,10 @@ function ADHPDemo() {
               <SelectInput value={serverEnvironment} onChange={setServerEnvironment} options={ENVIRONMENT_OPTIONS} />
 
               <SectionLabel>Policies</SectionLabel>
-              <Toggle value={serverThirdParty} onChange={setServerThirdParty} label="3rd-party sharing" tip={TIPS.s_3rdparty} />
+              <Toggle value={serverThirdPartyOptOut} onChange={setServerThirdPartyOptOut} label="3rd-party opt-out" tip={TIPS.s_3rdparty} />
               <Toggle value={serverTrainingOptOut} onChange={setServerTrainingOptOut} label="Training opt-out" tip={TIPS.s_training} />
-              <Toggle value={serverContentLogging} onChange={setServerContentLogging} label="Content logging" tip={TIPS.s_logging} />
-              <Toggle value={serverSanitization} onChange={setServerSanitization} label="Output sanitization" tip={TIPS.s_sanitization} />
+              <Toggle value={serverContentLoggingOptOut} onChange={setServerContentLoggingOptOut} label="Content logging opt-out" tip={TIPS.s_logging} />
+              <Toggle value={serverSanitizationOptIn} onChange={setServerSanitizationOptIn} label="Output sanitization opt-in" tip={TIPS.s_sanitization} />
             </div>
           )}
         </div>
