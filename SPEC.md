@@ -248,6 +248,18 @@ Returns only agents that meet or exceed the requested confidentiality requiremen
 - This applies everywhere ADHP is checked: in registries, gateways, and delegation chains. An agent in a chain that does not implement ADHP is treated as having no data policy.
 - This incentivizes agents to explicitly declare their policy, as undeclared agents will be filtered out of any confidentiality-sensitive queries.
 
+### 9.1 Jurisdiction Checking
+
+Server jurisdiction fields (`processing_jurisdiction`, `storage_jurisdiction`) declare where data **may** be processed or stored. A client's accepted jurisdictions define where data is **allowed** to go.
+
+**Checking rule:** All server-declared jurisdictions must be within the client's accepted list. If a server declares `["DE", "US"]` and a client accepts `["DE"]`, the check fails — the server may process in US which is outside the accepted list.
+
+**Undeclared jurisdictions:** If a server does not declare any jurisdiction, assume worst case — the check fails for any client that has jurisdiction requirements.
+
+**Gateways:** A gateway can enforce stricter jurisdiction requirements than the client. The highest requirement (most restrictive accepted list) applies — gateways can raise requirements but never lower them.
+
+> **Note:** v0.3 will introduce `guaranteed` vs. `possible` jurisdiction declarations for multi-region providers. See [Discussion #7](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7).
+
 ---
 
 ## 10. Relationship to Other Standards
