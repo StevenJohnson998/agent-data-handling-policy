@@ -23,7 +23,6 @@ info "Test 1: Valid MCP initialize request"
 RESP=$(curl -s -X POST "$BASE_URL/mcp" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","clientInfo":{"name":"test","version":"1.0"}}}')
-
 if echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['result']['capabilities']['adhp']['level']" 2>/dev/null; then
   green "Initialize returns ADHP in capabilities"
 else
@@ -114,8 +113,40 @@ else
   red "Missing jsonrpc field not caught"
 fi
 
-# 9. Rate limiting
-info "Test 9: Rate limiting (sending 12 rapid requests)"
+# 9. Health endpoint
+info "Test 9: Health check endpoint"
+HEALTH=$(curl -s "$BASE_URL/health")
+if echo "$HEALTH" | grep -q '"status":"ok"'; then
+  green "Health endpoint working"
+else
+  red "Health endpoint failed"
+fi
+
+# 10. No docs exposed
+info "Test 10: No docs endpoints exposed"
+DOCS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/docs")
+REDOC_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/redoc")
+OPENAPI_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/openapi.json")
+if [ "$DOCS_CODE" = "404" ] && [ "$REDOC_CODE" = "404" ] && [ "$OPENAPI_CODE" = "404" ]; then
+  green "No docs/redoc/openapi exposed"
+else
+  red "Docs endpoints accessible (docs=$DOCS_CODE redoc=$REDOC_CODE openapi=$OPENAPI_CODE)"
+fi
+
+# 11. Ping
+info "Test 11: MCP ping method"
+RESP=$(curl -s -X POST "$BASE_URL/mcp" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":99,"method":"ping","params":{}}')
+if echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['id']==99 and 'result' in d" 2>/dev/null; then
+  green "Ping returns valid response"
+else
+  red "Ping failed"
+fi
+
+# 12. Rate limiting (LAST — burns through the quota)
+info "Test 12: Rate limiting (sending 12 rapid requests)"
+sleep 61  # ensure clean rate limit window
 RATE_LIMITED=false
 for i in $(seq 1 12); do
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/mcp" \
@@ -130,39 +161,6 @@ if [ "$RATE_LIMITED" = true ]; then
   green "Rate limiting triggered at request $i"
 else
   red "Rate limiting not triggered after 12 requests"
-fi
-
-# 10. Health endpoint
-# Wait for rate limit window to reset after test 9
-sleep 5
-info "Test 10: Health check endpoint"
-HEALTH=$(curl -s "$BASE_URL/health")
-if echo "$HEALTH" | grep -q '"status":"ok"'; then
-  green "Health endpoint working"
-else
-  red "Health endpoint failed"
-fi
-
-# 11. No docs exposed
-info "Test 11: No docs endpoints exposed"
-DOCS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/docs")
-REDOC_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/redoc")
-OPENAPI_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/openapi.json")
-if [ "$DOCS_CODE" = "404" ] && [ "$REDOC_CODE" = "404" ] && [ "$OPENAPI_CODE" = "404" ]; then
-  green "No docs/redoc/openapi exposed"
-else
-  red "Docs endpoints accessible (docs=$DOCS_CODE redoc=$REDOC_CODE openapi=$OPENAPI_CODE)"
-fi
-
-# 12. Ping
-info "Test 12: MCP ping method"
-RESP=$(curl -s -X POST "$BASE_URL/mcp" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":99,"method":"ping","params":{}}')
-if echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['id']==99 and 'result' in d" 2>/dev/null; then
-  green "Ping returns valid response"
-else
-  red "Ping failed"
 fi
 
 echo ""
