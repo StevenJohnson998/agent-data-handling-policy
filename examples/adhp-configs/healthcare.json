@@ -12,6 +12,6 @@
     "processing_jurisdiction": ["US"],
     "storage_jurisdiction": ["US"],
     "execution_environment": "TEE",
-    "third_party_sharing": { "enabled": false }
+    "third_party_opt_out": true
   }
 }

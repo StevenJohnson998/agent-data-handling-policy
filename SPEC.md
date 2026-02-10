@@ -92,9 +92,9 @@ Beyond the overall level, each agent declares specific properties in its manifes
 | `max_retention` | enum | How long data is kept: `none`, `request`, `session`, `24h`, `7d`, `30d`, `custom`, `unlimited` |
 | `retention_days` | integer | Exact number of days when `max_retention` is `custom` |
 | `session_ttl` | string | When retention is `session`, how long that means: `1h`, `4h`, `24h` |
-| `content_logging` | boolean | Whether the content of requests/responses appears in logs |
+| `content_logging_opt_out` | boolean | Whether the agent commits to NOT logging request/response content |
 | `delegation_policy` | enum | Sub-agent policy: `none`, `same_or_higher`, `unrestricted` |
-| `output_sanitization` | boolean | Whether outputs are scrubbed of source data |
+| `output_sanitization_opt_in` | boolean | Whether the agent commits to scrubbing outputs of source data |
 | `certification` | string (nullable) | Future: ID of a verification/audit certificate |
 
 ### 4.2 Privacy & Compliance Properties
@@ -112,7 +112,8 @@ Beyond the overall level, each agent declares specific properties in its manifes
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `third_party_sharing.enabled` | boolean | Whether data is shared with any third party |
+| `third_party_opt_out` | boolean | Whether the agent commits to NOT sharing data with third parties |
+| `third_party_sharing.enabled` | boolean | Detailed: whether data is shared with any third party |
 | `third_party_sharing.purpose` | list[enum] | Why data is shared: `analytics`, `advertising`, `improvement`, `subprocessing`, `resale` |
 | `third_party_sharing.sanitized` | boolean | Whether shared data is anonymized/stripped of PII |
 | `third_party_sharing.parties` | list[object] | Declared third parties with type, purpose, and ADHP level if known |

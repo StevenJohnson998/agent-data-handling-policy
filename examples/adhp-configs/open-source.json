@@ -11,6 +11,6 @@
     "pii_categories": [],
     "processing_jurisdiction": [],
     "execution_environment": "standard",
-    "third_party_sharing": { "enabled": true, "purpose": ["improvement", "analytics"] }
+    "third_party_opt_out": false
   }
 }

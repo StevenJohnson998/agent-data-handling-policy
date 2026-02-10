@@ -17,7 +17,7 @@ ADHP is an open specification that lets AI agents declare their data handling pr
     "compliance": ["GDPR", "HIPAA"],
     "pii_categories": ["email", "financial", "health"],
     "processing_jurisdiction": ["DE"],
-    "third_party_sharing": { "enabled": false }
+    "third_party_opt_out": true
   }
 }
 ```

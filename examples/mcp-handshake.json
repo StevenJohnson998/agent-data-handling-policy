@@ -24,9 +24,7 @@
         "processing_jurisdiction": ["DE"],
         "storage_jurisdiction": ["DE"],
         "execution_environment": "containerized",
-        "third_party_sharing": {
-          "enabled": false
-        }
+        "third_party_opt_out": true
       }
     },
     "serverInfo": {
