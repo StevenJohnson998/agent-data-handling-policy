@@ -106,12 +106,19 @@ This specification is a draft seeking community feedback. Not yet an official st
 
 **v0.3 planned:**
 - Jurisdiction modeling: guaranteed vs. possible locations ([discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7))
+- DPA verification: cryptographic proof of legal agreements at runtime ([discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8))
+
+**v0.4 planned:**
+- Cryptographic DPA verification layer: runtime challenge-response proof that valid DPAs exist across the delegation chain
+- Zero-knowledge chain propagation: clients see whether the full chain is DPA-verified without seeing intermediate details
+- Prerequisites: v0.3 bidirectional handshake
 - Interactive playground improvements
 - Gateway policy language specification
 
 ---
 
 ## Contributing
+- [DPA verification — cryptographic proof of legal agreements](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8)
 
 We're looking for feedback on the levels, delegation rules, verification mechanisms, and regulatory interactions. See the open discussions:
 

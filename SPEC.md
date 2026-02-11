@@ -261,6 +261,8 @@ Server jurisdiction fields (`processing_jurisdiction`, `storage_jurisdiction`) d
 
 > **Note:** v0.3 will introduce `guaranteed` vs. `possible` jurisdiction declarations for multi-region providers. See [Discussion #7](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7).
 
+> **Note:** v0.4 will introduce cryptographic DPA verification — runtime proof that valid Data Processing Agreements exist between parties in the delegation chain, with zero-knowledge chain propagation. See [Discussion #8](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8).
+
 ---
 
 ## 10. Relationship to Other Standards
