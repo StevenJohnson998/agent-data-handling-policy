@@ -1,0 +1,14 @@
+{
+  "level": "strict",
+  "training_opt_out": true,
+  "third_party_opt_out": true,
+  "content_logging_opt_out": true,
+  "max_retention": "request",
+  "delegation_policy": "same_or_higher",
+  "compliance": ["GDPR", "AI_ACT_EU"],
+  "pii_categories": ["email", "financial", "identity"],
+  "processing_jurisdiction": ["DE", "FR"],
+  "storage_jurisdiction": ["DE"],
+  "log_jurisdiction": ["DE"],
+  "execution_environment": "containerized"
+}

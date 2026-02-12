@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adhp"
+version = "0.2.0"
+description = "Agent Data Handling Policy (ADHP) SDK — compliance checking for MCP servers and clients"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Steven Johnson" },
+]
+keywords = ["adhp", "mcp", "agent", "data-handling", "compliance", "privacy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.0",
+    "click>=8.0",
+    "httpx>=0.24",
+]
+
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.100",
+    "uvicorn>=0.20",
+    "fastmcp>=0.1",
+]
+schema = [
+    "jsonschema>=4.0",
+]
+yaml = [
+    "pyyaml>=6.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "fastapi>=0.100",
+    "uvicorn>=0.20",
+    "httpx>=0.24",
+    "jsonschema>=4.0",
+    "pyyaml>=6.0",
+]
+all = [
+    "fastapi>=0.100",
+    "uvicorn>=0.20",
+    "fastmcp>=0.1",
+    "jsonschema>=4.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+adhp = "adhp.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/StevenJohnson998/agent-data-handling-policy"
+Documentation = "https://github.com/StevenJohnson998/agent-data-handling-policy#readme"
+Repository = "https://github.com/StevenJohnson998/agent-data-handling-policy"
+
+[tool.setuptools.packages.find]
+include = ["adhp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
