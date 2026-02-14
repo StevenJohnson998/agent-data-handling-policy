@@ -18,20 +18,12 @@ A company asks an AI recruiting agent to find a senior developer. That agent cal
 
 ```mermaid
 flowchart LR
-    M["👤 Hiring\nManager"]
-    M -->|"Name, CV,\nJob Requirements"| R["🤖 Recruiting\nAgent\n\n❓"]
-    R -->|"Name, Employment\nHistory, Addresses"| B["🤖 Background\nCheck Agent\n\n❓"]
-    B -->|"SSN, Financial\nHistory"| C["🤖 Credit Score\nAgent\n\n❓"]
-    C -->|"Government ID,\nBiometrics"| I["🤖 Identity\nVerification Agent\n\n❓"]
-
-    style M fill:#2d2d2d,stroke:#888,color:#fff
-    style R fill:#1a1a2e,stroke:#e74c3c,stroke-width:2px,color:#00d4ff
-    style B fill:#1a1a2e,stroke:#e74c3c,stroke-width:2px,color:#00d4ff
-    style C fill:#1a1a2e,stroke:#e74c3c,stroke-width:2px,color:#00d4ff
-    style I fill:#1a1a2e,stroke:#e74c3c,stroke-width:2px,color:#00d4ff
+    A[Recruiting Agent] -->|CV, Name| B[Background Check]
+    B -->|SSN, History| C[Credit Score]
+    C -->|Gov. ID, Biometrics| D[Identity Check]
 ```
 
-> *Each ❓ means: What does this agent do with the data? Does it store it? Use it for training? Forward it to third parties? Process it in which country? Today, there's no standard way to know.*
+> **At each step: does the agent store your data? Use it for training? Share it with third parties? Process it in which country?** Today, there is no standard way to know.
 
 This isn't hypothetical. [MCP](https://modelcontextprotocol.io) (Anthropic) has 97M+ monthly SDK downloads. [A2A](https://google.github.io/A2A) (Google) connects agents to agents. The infrastructure for autonomous agent chains is here — the privacy layer is not.
 
@@ -43,22 +35,12 @@ ADHP is an open specification — a **machine-readable privacy passport for AI a
 
 Systems read it at runtime and decide whether or not to allow the agent to access your data. No valid passport? No entry.
 
-Every agent declares its data handling practices upfront. Orchestrators, gateways, and registries check these declarations automatically **before any data is sent**. Non-compliant agents are blocked before they ever see your data.
-
 ```mermaid
 flowchart LR
-    U["👤 User\nRequest"] --> O["🤖 Orchestrator"]
-    O --> CHECK{"📋 Check\nADHP Policy"}
-    CHECK -->|"✅ Compliant"| A["🔧 Agent\nprocesses data"]
-    CHECK -->|"❌ Non-compliant"| B["🚫 Blocked\nNo data sent"]
-    A --> R["📦 Result\nreturned safely"]
-
-    style CHECK fill:#4a2080,stroke:#9775fa,color:#fff
-    style A fill:#1a5c2a,stroke:#51cf66,color:#fff
-    style B fill:#8c1a1a,stroke:#ff6b6b,color:#fff
-    style U fill:#2d2d2d,stroke:#888,color:#fff
-    style O fill:#2d2d2d,stroke:#888,color:#fff
-    style R fill:#2d2d2d,stroke:#888,color:#fff
+    User -->|Request| Gateway
+    Gateway -->|Check ADHP| Decision{Compliant?}
+    Decision -->|Yes ✅| Agent[Agent processes data]
+    Decision -->|No ❌| Block[Blocked — no data sent]
 ```
 
 > The key: the compliance check happens **before** any data reaches the agent.
@@ -102,45 +84,34 @@ ADHP plugs into two protocols that are shaping the agent ecosystem:
 
 ADHP extends both with **data handling transparency**.
 
-When two systems connect via MCP, they exchange capabilities in a "handshake." ADHP adds data handling declarations to this handshake — so the client knows *before sending any data* what the server will do with it.
+When two systems connect, they exchange capabilities in a "handshake." ADHP adds data handling declarations to this handshake — so the client knows *before sending any data* what the server will do with it.
 
 ```mermaid
 sequenceDiagram
-    participant C as 🤖 Client / Orchestrator
-    participant S as 🔧 Agent / MCP Server
+    participant C as Client / Gateway
+    participant S as Agent / MCP Server
 
     C->>S: Connection request
-    S-->>C: Here are my capabilities + ADHP policy
-    Note over S: level, retention, jurisdiction,<br/>compliance, delegation rules...
-
+    S-->>C: Capabilities + ADHP policy (level, retention, jurisdiction...)
     C->>C: Check policy against requirements
-
-    alt ✅ Policy meets requirements
-        C->>S: Send data for processing
+    alt Policy meets requirements
+        C->>S: ✅ Send data for processing
         S-->>C: Return results
-    else ❌ Policy insufficient
-        C--xS: Connection refused — no data sent
+    else Policy insufficient
+        C--xS: ❌ Connection refused — no data sent
     end
 ```
 
 ### Delegation cascading
 
-When agents delegate to other agents, ADHP ensures privacy requirements are enforced **at every step** of the chain:
+When agents delegate to other agents, privacy requirements are enforced at every step. The level can stay the same or go up — never down.
 
 ```mermaid
 flowchart LR
-    U["👤 User\n requirement:\nLevel 3+"] --> A["🤖 Agent A\n🟢 Level 3\n✅"]
-    A --> B["🤖 Agent B\n🟢 Level 3\n✅"]
-    B --> C["🤖 Agent C\n🔵 Level 4\n✅"]
-    C -.->|"Attempts delegation"| D["🤖 Agent D\n🟠 Level 1\n❌ Blocked"]
-    B --> E["..."]
-
-    style A fill:#1a5c2a,stroke:#51cf66,color:#fff
-    style B fill:#1a5c2a,stroke:#51cf66,color:#fff
-    style C fill:#1a3c5c,stroke:#4dabf7,color:#fff
-    style D fill:#8c1a1a,stroke:#ff6b6b,color:#fff
-    style U fill:#2d2d2d,stroke:#888,color:#fff
-    style E fill:#2d2d2d,stroke:#666,color:#999
+    U[User requires Level 3+] --> A[Agent A — Level 3 ✅]
+    A --> B[Agent B — Level 3 ✅]
+    B --> C[Agent C — Level 4 ✅]
+    C -.->|Blocked| D[Agent D — Level 1 ❌]
 ```
 
 > Technical deep dive: [SPEC.md](SPEC.md) · [Architecture discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6)
@@ -153,27 +124,12 @@ flowchart LR
 
 Fair question. ADHP starts with self-declaration and progressively builds toward cryptographic guarantees — similar to how blockchain moved from "trust me" to "verify on-chain":
 
-```mermaid
-flowchart LR
-    P1["📝 Phase 1\nSelf-Declaration\n\n Agents declare\n their practices"]
-    P2["✅ Phase 2\nVerified Badge\n\n KYC + technical\n audit"]
-    P3["🤖 Phase 3\nAutomated Auditing\n\n Canary data testing\n by auditor agents"]
-    P4["🔐 Phase 4\nCryptographic Proof\n\n TEE attestation,\n signed code,\n ZK proofs"]
-
-    P1 --> P2 --> P3 --> P4
-
-    style P1 fill:#1864ab,stroke:#4dabf7,color:#fff
-    style P2 fill:#5f3dc4,stroke:#9775fa,color:#fff
-    style P3 fill:#862e9c,stroke:#da77f2,color:#fff
-    style P4 fill:#a61e4d,stroke:#f06595,color:#fff
-```
-
-| Phase | Trust Level | How |
-|:-----:|:-----------:|-----|
-| 📝 Self-Declaration | Reputation-based | Agents declare practices. Registries store declarations. |
-| ✅ Verified Badge | Audit-backed | KYC for operators + technical audit + periodic re-verification |
-| 🤖 Automated Auditing | Test-proven | Auditor agents send canary data and verify handling matches declarations |
-| 🔐 Cryptographic Proof | Mathematically proven | TEE attestation, encrypted envelopes, signed source code verification, zero-knowledge proofs |
+| Phase | What | Trust Level |
+|:-----:|------|:-----------:|
+| 📝 | **Self-Declaration** — Agents declare their practices | Reputation-based |
+| ✅ | **Verified Badge** — KYC for operators + technical audit | Audit-backed |
+| 🤖 | **Automated Auditing** — Auditor agents test with canary data | Test-proven |
+| 🔐 | **Cryptographic Proof** — TEE attestation, signed code, ZK proofs | Mathematically proven |
 
 Each phase raises the cost of lying. Today, ADHP makes data handling transparent. Tomorrow, it makes violations detectable and provable.
 
