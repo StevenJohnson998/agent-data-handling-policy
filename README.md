@@ -139,7 +139,7 @@ Fair question. ADHP starts with self-declaration and progressively builds toward
 
 Each phase raises the cost of lying. Today, ADHP makes data handling transparent. Tomorrow, it makes violations detectable and provable.
 
-> Deep dive: [Enforcement patterns](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5) · [DPA verification](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8)
+> Deep dive: [Enforcement patterns](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5) · [DPA verification](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/9)
 
 ---
 
@@ -157,7 +157,7 @@ ADHP is **regulation-agnostic** — it provides the technical transparency layer
 > ⚠️ ADHP does not replace legal compliance. It is a **due diligence and transparency tool** that makes compliance demonstrable. The same agent can be compliant for one processing activity and non-compliant for another — ADHP makes this visible.
 
 <!-- TODO: Update discussion links once compliance category is created -->
-> Regulatory discussions: [Jurisdiction challenges](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7) · [EU AI Act & the regulatory gap](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/4)
+> Regulatory discussions: [Complex jurisdiction issue](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8) · [EU AI Act & the autonomous agent compliance problem](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/4)
 
 ---
 
@@ -245,9 +245,8 @@ We're building this in the open. Feedback welcome from developers, DPOs, privacy
 - [Enforcement patterns — from self-declaration to cryptographic proof](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5)
 
 **⚖️ Compliance & Regulation:**
-- [Jurisdiction modeling challenges](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7)
-- [DPA verification for agent chains](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8)
-- [EU AI Act & the regulatory gap](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/4)
-- [Community discussion — Reddit r/gdpr](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/3)
+- [Complex jurisdiction issue](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8)
+- [Cryptographic DPA verification for agent chains](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/9)
+- [EU AI Act & the autonomous agent compliance problem](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/4)
 
 Open a [Discussion](../../discussions) for ideas, an [Issue](../../issues) for bugs, or submit a PR.
