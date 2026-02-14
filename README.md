@@ -21,6 +21,8 @@ flowchart LR
     A[Recruiting Agent] -->|CV, Name| B[Background Check]
     B -->|SSN, History| C[Credit Score]
     C -->|Gov. ID, Biometrics| D[Identity Check]
+    D ~~~ S[ ]
+    style S fill:none,stroke:none
 ```
 
 > **At each step: does the agent store your data? Use it for training? Share it with third parties? Process it in which country?** Today, there is no standard way to know.
@@ -41,6 +43,8 @@ flowchart LR
     Gateway -->|Check ADHP| Decision{Compliant?}
     Decision -->|Yes ✅| Agent[Agent processes data]
     Decision -->|No ❌| Block[Blocked — no data sent]
+    Agent ~~~ S[ ]
+    style S fill:none,stroke:none
 ```
 
 > The key: the compliance check happens **before** any data reaches the agent.
@@ -112,6 +116,8 @@ flowchart LR
     A --> B[Agent B — Level 3 ✅]
     B --> C[Agent C — Level 4 ✅]
     C -.->|Blocked| D[Agent D — Level 1 ❌]
+    D ~~~ S[ ]
+    style S fill:none,stroke:none
 ```
 
 > Technical deep dive: [SPEC.md](SPEC.md) · [Architecture discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6)
