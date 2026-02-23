@@ -107,4 +107,5 @@ Implementation patterns are evolving fast. If you're building ADHP enforcement i
 **Key discussions:**
 - [Architecture — where ADHP sits in the stack](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6)
 - [Enforcement patterns — honest assessment of each approach](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5)
-- [Jurisdiction modeling challenges](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7)
+- [Complex jurisdiction issue](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8)
+
