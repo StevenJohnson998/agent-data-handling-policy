@@ -1,0 +1,13 @@
+{
+  "level": "standard",
+  "training_opt_out": true,
+  "max_retention": "session",
+  "session_ttl": "4h",
+  "delegation_policy": "same_or_higher",
+  "compliance": ["GDPR"],
+  "pii_categories": ["email", "identity"],
+  "processing_jurisdiction": ["DE", "FR", "NL"],
+  "storage_jurisdiction": ["DE"],
+  "log_jurisdiction": ["DE"],
+  "execution_environment": "containerized"
+}
