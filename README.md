@@ -126,4 +126,11 @@ We're looking for feedback on the levels, delegation rules, verification mechani
 - [Jurisdiction modeling](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7)
 - [Enforcement patterns](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5)
 
+**Good first issues:**
+
+- **Add end-to-end tutorials for common use cases** — We have example configs in `examples/configs/` (healthcare, finance, etc.) but no guided tutorials showing a full workflow. It would help to have 3-4 walkthroughs covering a realistic scenario from config to server setup to client-side compliance check.
+- **Add more compliance frameworks to the spec** — Currently the spec covers GDPR, HIPAA, CCPA, and AI Act EU. Several major regulations are missing — PIPL (China), APPI (Japan), LGPD (Brazil), POPIA (South Africa), among others. Each entry should describe what the regulation requires and which ADHP fields are affected (retention, jurisdiction, pii_categories, etc.).
+- **Improve CLI output formatting** — The output of `adhp check` is functional but pretty bare. Adding colors, tables, and a summary would make it much easier to read. The CLI uses Click — `rich` could be a good fit here as an optional dependency.
+- **Add badge generator for ADHP level** — A CLI command like `adhp badge --level strict --format markdown` that outputs a ready-to-paste shields.io badge snippet for READMEs. Something like `![ADHP Level: Strict](https://img.shields.io/badge/ADHP-Strict-green)`.
+
 Open a [Discussion](../../discussions) for ideas, an [Issue](../../issues) for bugs, or submit a PR (open an issue first).
