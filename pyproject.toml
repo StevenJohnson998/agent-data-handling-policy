@@ -7,7 +7,7 @@ name = "adhp"
 version = "0.2.0"
 description = "Agent Data Handling Policy (ADHP) SDK — compliance checking for MCP servers and clients"
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
     { name = "Steven Johnson" },

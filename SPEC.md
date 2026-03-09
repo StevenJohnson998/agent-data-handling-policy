@@ -13,7 +13,7 @@
 
 When an AI agent processes your data, what happens to it? Is it stored? Used for training? Forwarded to another service? Processed in a different country?
 
-Traditional security frameworks (ISO 27001, GDPR) focus on *who can access data*. ADHP addresses a different question — one that becomes critical in a world of autonomous AI agents: **what does the agent do with the data during and after processing?**
+Traditional frameworks address organizational compliance (GDPR) and information security controls (ISO 27001). The Agent Data Handling Policy (ADHP) addresses a different question specific to the agentic world: **what does the agent do with the data during and after processing?**
 
 This specification defines a standardized, machine-readable way for AI agents to declare their data handling practices. It enables orchestrators, gateways, and registries to make informed decisions **before any data is sent** — based on the sensitivity of the data and the regulatory context.
 
@@ -305,7 +305,7 @@ ADHP is designed to **complement, not replace**, existing standards. It provides
 | Standard | Focus | How ADHP Complements |
 |----------|-------|---------------------|
 | **GDPR** | Legal framework for personal data in the EU | Technical declaration of compliance-relevant practices across agent chains |
-| **HIPAA** | Health data protection (US) | Agents declare health PII handling; clients filter by HIPAA compliance |
+| **HIPAA** | Health data protection (US) | Agents declare health PII handling; clients filter by declared HIPAA support |
 | **EU AI Act** | AI system regulation (EU) | Machine-readable transparency for Article 50 obligations |
 | **CCPA** | Consumer privacy (US) | Third-party sharing declarations, verifiable at runtime |
 | **ISO 27001** | Who can access data within an organization | What happens to data after an agent processes it |
