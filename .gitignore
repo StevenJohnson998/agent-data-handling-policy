@@ -27,3 +27,6 @@ private/
 *.log
 docker-compose.override.yml
 .claude
+
+# Old files
+old/

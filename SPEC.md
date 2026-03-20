@@ -2,32 +2,42 @@
 
 > **Version:** 0.2.0 (Draft)
 > **Status:** RFC — Request for Comments
-> **Author:** Agent Registry Project
+> **Author:** Steven Johnson / ADHP Project
 > **Date:** February 2026
+> **License:** Apache 2.0
+> **Repository:** [github.com/StevenJohnson998/agent-data-handling-policy](https://github.com/StevenJohnson998/agent-data-handling-policy)
+
+---
 
 ## 1. Purpose
 
-In a multi-agent ecosystem, when an orchestrator sends data to an agent for processing, the sender needs to know: **what will happen to my data?**
+When an AI agent processes your data, what happens to it? Is it stored? Used for training? Forwarded to another service? Processed in a different country?
 
-Traditional security frameworks (ISO 27001, GDPR) focus on *who can access data*. The Agent Data Handling Policy (ADHP) addresses a different question specific to the agentic world: **what does the agent do with the data during and after processing?**
+Traditional frameworks address organizational compliance (GDPR) and information security controls (ISO 27001). The Agent Data Handling Policy (ADHP) addresses a different question specific to the agentic world: **what does the agent do with the data during and after processing?**
 
-This specification defines a standardized way for AI agents to declare their data handling practices, enabling orchestrators to make informed routing decisions based on the sensitivity of the data being processed.
+This specification defines a standardized, machine-readable way for AI agents to declare their data handling practices. It enables orchestrators, gateways, and registries to make informed decisions **before any data is sent** — based on the sensitivity of the data and the regulatory context.
+
+ADHP is designed as a **privacy passport for AI agents** — a cross-cutting transparency layer that extends [MCP](https://modelcontextprotocol.io) (Anthropic) and [A2A](https://google.github.io/A2A) (Google).
 
 ---
 
 ## 2. Problem Statement
 
-When Agent A sends a financial document to Agent B for analysis:
+Consider a recruiting scenario: an AI agent is asked to find candidates. It delegates to a background check agent, which calls a credit score agent, which calls an identity verification agent. At each step, increasingly sensitive data is passed along — CVs, employment history, social security numbers, biometric data.
 
-- Will Agent B use that document to train or improve its model?
-- Will Agent B store the document after returning the analysis?
-- Will Agent B log the contents of the document?
-- Will Agent B forward the document to a sub-agent (Agent C)?
-- Will Agent B's response contain the original sensitive data?
-- Will Agent B share the data with third parties?
-- Where physically is Agent B processing the data?
+At every link in this chain, the same questions arise:
 
-Today, there is no standard way for agents to declare this information, and no standard way for orchestrators to filter agents based on these criteria.
+- Will the agent use the data to train or improve its model?
+- Will it store the data after returning results?
+- Will it log the contents of the request?
+- Will it forward the data to a sub-agent?
+- Will its response contain the original sensitive data?
+- Will it share data with third parties?
+- Where physically is the data being processed?
+
+Today, there is no standard way for agents to declare this information, and no standard way for clients to filter agents based on these criteria.
+
+Under GDPR, the data controller is accountable for every sub-processor in the chain ([Art. 28](https://gdpr-info.eu/art-28-gdpr/)). Without visibility into agent data handling, demonstrating compliance becomes practically impossible.
 
 ---
 
@@ -49,7 +59,9 @@ ADHP defines five levels of data handling, from most permissive to most restrict
 
 #### Level 0 — Open
 
-The agent makes no guarantees about data handling. Data may be used for any purpose including model training, indefinite storage, and redistribution. This is the default assumption when an agent does not declare a policy.
+The agent makes no guarantees about data handling. Data may be used for any purpose including model training, indefinite storage, and redistribution.
+
+**This is the default assumption when an agent does not declare a policy.** Undeclared agents are treated as Level 0 everywhere ADHP is checked — in registries, gateways, and delegation chains. This incentivizes agents to declare their practices explicitly.
 
 **Use case:** Public data processing, open-source analysis, non-sensitive content generation.
 
@@ -63,13 +75,13 @@ The agent will not use the data for model training. Data is retained for the dur
 
 Same protections as Standard, with additional constraints: data is retained only for the duration of a single request (not the full session). If the agent delegates to sub-agents, this must be explicitly declared in the agent's manifest. The agent's output is sanitized — it will not contain verbatim source data.
 
-**Use case:** Personal data processing, financial analysis, HR data, customer records.
+**Use case:** Personal data processing (GDPR Art. 6), financial analysis, HR data, customer records.
 
 #### Level 3 — Strict
 
 The agent provides strong confidentiality guarantees. No content logging of any kind. Data is retained only during request processing. Delegation is only permitted to agents at the same level or higher. Output is sanitized and reviewed (automated or manual) to prevent data leakage. No third-party sharing of any kind.
 
-**Use case:** Legal documents, trade secrets, medical records, classified business strategies.
+**Use case:** Legal documents, trade secrets, medical records (HIPAA), classified business strategies.
 
 #### Level 4 — Zero-Trace
 
@@ -77,11 +89,13 @@ The highest level of confidentiality. The agent processes data in memory only �
 
 **Use case:** National security, pre-announcement M&A data, whistleblower submissions, highly sensitive IP.
 
+> **Honest assessment:** Levels 3 and 4 make strong promises that are difficult to verify without runtime enforcement (containerization, TEE). Today, these levels represent commitments — not proofs. The [verification roadmap](#7-verification-roadmap) describes how ADHP progressively builds from trust-based declarations toward cryptographic guarantees.
+
 ---
 
 ## 4. Data Handling Properties
 
-Beyond the overall level, each agent declares specific properties in its manifest:
+Beyond the overall level, each agent declares specific properties in its manifest. These properties give clients granular control over what they accept.
 
 ### 4.1 Core Properties
 
@@ -94,7 +108,10 @@ Beyond the overall level, each agent declares specific properties in its manifes
 | `session_ttl` | string | When retention is `session`, how long that means: `1h`, `4h`, `24h` |
 | `content_logging_opt_out` | boolean | Whether the agent commits to NOT logging request/response content |
 | `delegation_policy` | enum | Sub-agent policy: `none`, `same_or_higher`, `unrestricted` |
+| `delegation_depth` | integer (optional) | Maximum depth of delegation chain allowed |
 | `output_sanitization_opt_in` | boolean | Whether the agent commits to scrubbing outputs of source data |
+| `direct_marketing_opt_out` | boolean | Whether the agent commits to NOT using data for direct marketing or commercial prospection ([GDPR Art. 21](https://gdpr-info.eu/art-21-gdpr/)) |
+| `scientific_research_opt_out` | boolean | Whether the agent commits to NOT using data for scientific research ([GDPR Art. 89](https://gdpr-info.eu/art-89-gdpr/)) |
 | `certification` | string (nullable) | Future: ID of a verification/audit certificate |
 
 ### 4.2 Privacy & Compliance Properties
@@ -107,6 +124,8 @@ Beyond the overall level, each agent declares specific properties in its manifes
 | `storage_jurisdiction` | list[string] | Where data is stored (ISO 3166-1 country codes) |
 | `log_jurisdiction` | list[string] | Where logs are kept (ISO 3166-1 country codes) |
 | `execution_environment` | enum | `standard`, `containerized`, `TEE`, `enclave` |
+
+> **Important note on `compliance`:** Declaring `compliance: ["GDPR"]` means the agent operator claims their processing activities are designed to support GDPR compliance. It does NOT mean the agent is "GDPR certified" — no such certification exists. Compliance depends on the specific processing activity, the legal basis, and the contractual chain (DPAs). ADHP is a transparency tool, not a compliance certification. See [Discussion #7](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7) for planned evolution of this field.
 
 ### 4.3 Third-Party Sharing Properties
 
@@ -122,7 +141,20 @@ Beyond the overall level, each agent declares specific properties in its manifes
 
 If a third party is undisclosed, it is treated as Level 0 (assume the worst).
 
-### 4.4 Example Manifest
+### 4.4 Naming Convention — Opt-out/Opt-in Pattern
+
+All boolean fields follow a consistent principle: **undeclared = assume the worst**.
+
+- `training_opt_out: true` → the agent commits to NOT training on data
+- `content_logging_opt_out: true` → the agent commits to NOT logging content
+- `direct_marketing_opt_out: true` → the agent commits to NOT using data for direct marketing or prospection
+- `output_sanitization_opt_in: true` → the agent commits to scrubbing outputs
+- `scientific_research_opt_out: true` → the agent commits to NOT using data for scientific research
+- If a field is not declared, assume the agent does NOT protect.
+
+This "fail-closed" design means agents must actively declare their protections. Silence is treated as absence of protection.
+
+### 4.5 Example Manifest
 
 ```json
 {
@@ -130,6 +162,8 @@ If a third party is undisclosed, it is treated as Level 0 (assume the worst).
   "data_handling": {
     "level": "strict",
     "training_opt_out": true,
+    "direct_marketing_opt_out": true,
+    "scientific_research_opt_out": true,
     "max_retention": "request",
     "delegation_policy": "same_or_higher",
     "compliance": ["GDPR", "AI_ACT_EU"],
@@ -141,10 +175,10 @@ If a third party is undisclosed, it is treated as Level 0 (assume the worst).
     "third_party_sharing": {
       "enabled": false,
       "purpose": [],
-      "sanitized": true,
+      "sanitized": false,
       "parties": [],
       "parties_disclosed": true,
-      "opt_out_available": true
+      "opt_out_available": false
     }
   }
 }
@@ -154,17 +188,23 @@ If a third party is undisclosed, it is treated as Level 0 (assume the worst).
 
 ## 5. Delegation Cascading Rule
 
-**Critical principle:** When Agent A delegates work to Agent B, the data handling level must be maintained or strengthened — never weakened.
+When Agent A delegates work to Agent B, the data handling level must be maintained or strengthened — **never weakened**.
 
-| Agent A Level | Agent B Minimum Level |
-|---------------|----------------------|
-| open | open (any) |
-| standard | standard |
-| sensitive | sensitive |
-| strict | strict |
-| zero-trace | No delegation allowed |
+The rule is based on the **caller's original request level**, not the delegating agent's own level. A Level 3 agent handling a Level 1 request can delegate to any Level 1+ agent.
 
-The delegation rule is based on the **caller's original request level**, not the delegating agent's own level. A Level 3 agent handling a Level 1 request can delegate to any Level 1+ agent.
+Level 4 (zero-trace) cannot delegate at all — data never leaves the agent boundary.
+
+```
+User requests: Level 2 (sensitive)
+    |
+    v
+Agent A (Level 3, strict) — accepts the job
+    |
+    |— delegates to Agent B (Level 2) — ✅ ALLOWED (meets caller's Level 2)
+    |— delegates to Agent C (Level 1) — ❌ BLOCKED (below caller's Level 2)
+```
+
+Gateways can raise requirements but never lower them. If the user requires Level 2 and the gateway requires Level 3, Level 3 applies.
 
 Enforcement of this rule can happen at multiple points — see [Section 11](#11-enforcement-architecture).
 
@@ -184,11 +224,13 @@ Enforcement of this rule can happen at multiple points — see [Section 11](#11-
 
 ## 7. Verification Roadmap
 
-### Phase 1 — Self-Declaration (MVP)
-Agents declare their own data handling level. The registry stores this declaration. Orchestrators filter based on declared levels. **Trust is based on the agent operator's reputation.**
+ADHP starts with trust-based declarations and progressively builds toward cryptographic guarantees. Each phase raises the cost of non-compliance.
+
+### Phase 1 — Self-Declaration (v0.2 — current)
+Agents declare their own data handling level. Registries store these declarations. Gateways and clients filter based on declared levels. **Trust is based on the agent operator's reputation.**
 
 ### Phase 2 — Verified Badge
-Agent operators can request verification. This involves:
+Agent operators can request verification:
 - KYC (Know Your Customer) for the operating organization
 - Technical audit of the agent's data handling practices
 - Periodic re-verification
@@ -196,7 +238,7 @@ Agent operators can request verification. This involves:
 
 ### Phase 3 — Automated Auditing
 Trusted "Auditor" agents periodically test registered agents by:
-- Sending test data with tracking markers
+- Sending test data with tracking markers (canary data)
 - Verifying the data is handled according to the declared policy
 - Checking that delegation chains maintain confidentiality levels
 - Reporting violations automatically
@@ -206,40 +248,37 @@ Technical enforcement through:
 - Encrypted data envelopes that enforce retention policies
 - Cryptographic proofs of deletion
 - Secure enclaves for zero-trace processing (TEE attestation)
+- Signed source code verification for open-source agents
+- Zero-knowledge proofs of compliance
 - Audit trails for verification history
 
 These mechanisms raise the cost of violations significantly, though no single mechanism provides absolute guarantees. For a detailed analysis of what each approach can and cannot prevent, see the [enforcement patterns discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5).
 
 ---
 
-## 8. API Integration
+## 8. Protocol Integration
 
-### Registering an Agent with Data Handling Policy
+### 8.1 MCP Integration
 
-```
-POST /agents
-{
-  "name": "FinanceAnalyzer Pro",
-  "description": "Advanced financial document analysis",
-  "capabilities": ["financial-analysis", "document-parsing"],
-  "endpoint": "https://api.finanalyzer.example.com",
-  "protocol": "REST",
-  "data_handling": {
-    "level": "strict",
-    "training_opt_out": true,
-    "max_retention": "request",
-    ...
-  }
-}
-```
+ADHP adds an `adhp` key inside MCP's `capabilities` object during the `initialize` handshake. The client reads this before sending any data.
 
-### Querying Agents by Data Handling Requirements
+See [examples/mcp-handshake.json](examples/mcp-handshake.json) for a complete example.
+
+### 8.2 A2A Integration
+
+ADHP enriches A2A Agent Cards with data handling metadata, enabling trust-based agent discovery.
+
+See [examples/a2a-agent-card.json](examples/a2a-agent-card.json) for a complete example.
+
+### 8.3 Registry Integration
+
+Registries can store ADHP metadata alongside agent capabilities, enabling filtered discovery:
 
 ```
 GET /agents?min_data_handling_level=sensitive&jurisdiction=EU&third_party_sharing=false
 ```
 
-Returns only agents that meet or exceed the requested confidentiality requirements.
+Returns only agents that meet or exceed the requested data handling requirements.
 
 ---
 
@@ -247,63 +286,69 @@ Returns only agents that meet or exceed the requested confidentiality requiremen
 
 - If an agent does not declare a `data_handling` policy, it defaults to `level: "open"` — **assume the worst case if not declared.**
 - This applies everywhere ADHP is checked: in registries, gateways, and delegation chains. An agent in a chain that does not implement ADHP is treated as having no data policy.
-- This incentivizes agents to explicitly declare their policy, as undeclared agents will be filtered out of any confidentiality-sensitive queries.
+- This incentivizes agents to explicitly declare their policy, as undeclared agents will be filtered out of any privacy-sensitive workflow.
 
 ### 9.1 Jurisdiction Checking
 
 Server jurisdiction fields (`processing_jurisdiction`, `storage_jurisdiction`) declare where data **may** be processed or stored. A client's accepted jurisdictions define where data is **allowed** to go.
 
-**Checking rule:** All server-declared jurisdictions must be within the client's accepted list. If a server declares `["DE", "US"]` and a client accepts `["DE"]`, the check fails — the server may process in US which is outside the accepted list.
+**Checking rule:** All server-declared jurisdictions must be within the client's accepted list. If a server declares `["DE", "US"]` and a client accepts `["DE"]`, the check fails — the server may process in the US, which is outside the accepted list.
 
 **Undeclared jurisdictions:** If a server does not declare any jurisdiction, assume worst case — the check fails for any client that has jurisdiction requirements.
 
 **Gateways:** A gateway can enforce stricter jurisdiction requirements than the client. The highest requirement (most restrictive accepted list) applies — gateways can raise requirements but never lower them.
 
-> **Note:** v0.3 will introduce `guaranteed` vs. `possible` jurisdiction declarations for multi-region providers. See [Discussion #7](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7).
+> **v0.3 planned:** Introduce `guaranteed` vs. `possible` jurisdiction declarations for multi-region providers. See [Discussion #7](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/7).
 
-> **Note:** v0.4 will introduce cryptographic DPA verification — runtime proof that valid Data Processing Agreements exist between parties in the delegation chain, with zero-knowledge chain propagation. See [Discussion #8](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8).
+> **v0.4 planned:** Cryptographic DPA verification — runtime proof that valid Data Processing Agreements exist between parties in the delegation chain. See [Discussion #8](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8).
 
 ---
 
 ## 10. Relationship to Other Standards
 
-| Standard | Focus | ADHP Complement |
-|----------|-------|-----------------|
-| GDPR | Legal framework for personal data in the EU | Technical declaration of compliance-relevant practices |
-| HIPAA | Health data protection (US) | Agents declare health PII handling; orchestrators filter by HIPAA compliance |
-| EU AI Act | AI system regulation (EU) | Machine-readable transparency for Article 50 obligations |
-| ISO 27001 | Who can access data within an organization | What happens to data after an agent processes it |
-| SOC 2 | Organizational security controls | Agent-level data handling transparency |
-| MCP | Protocol for agent-tool communication | ADHP adds data handling metadata to the capability handshake |
-| A2A | Protocol for agent-to-agent communication | ADHP enriches Agent Cards with trust information |
-| MCP Gateways | Policy enforcement, auth, routing | ADHP gives gateways a standardized language for data handling enforcement |
-| OAuth/OIDC | Who is authorized to call the agent | Authorization is separate — ADHP covers data handling *after* auth succeeds |
+ADHP is designed to **complement, not replace**, existing standards. It provides the machine-readable transparency layer that these frameworks require but currently lack tooling for.
 
-ADHP is designed to complement, not replace, these standards. An agent operating at "strict" level within the EU would still need to comply with GDPR independently — ADHP simply makes the agent's practices transparent and machine-queryable.
+| Standard | Focus | How ADHP Complements |
+|----------|-------|---------------------|
+| **GDPR** | Legal framework for personal data in the EU | Technical declaration of compliance-relevant practices across agent chains |
+| **HIPAA** | Health data protection (US) | Agents declare health PII handling; clients filter by declared HIPAA support |
+| **EU AI Act** | AI system regulation (EU) | Machine-readable transparency for Article 50 obligations |
+| **CCPA** | Consumer privacy (US) | Third-party sharing declarations, verifiable at runtime |
+| **ISO 27001** | Who can access data within an organization | What happens to data after an agent processes it |
+| **SOC 2** | Organizational security controls | Agent-level data handling transparency |
+| **MCP** | Protocol for agent-tool communication (Anthropic) | ADHP adds data handling metadata to the capability handshake |
+| **A2A** | Protocol for agent-to-agent communication (Google) | ADHP enriches Agent Cards with trust information |
+| **MCP Gateways** | Policy enforcement, auth, routing | ADHP gives gateways a standardized language for data handling enforcement |
+| **OAuth/OIDC** | Who is authorized to call the agent | Authorization is separate — ADHP covers data handling *after* auth succeeds |
+
+> ⚠️ An agent operating at "strict" level within the EU would still need to comply with GDPR independently. ADHP makes the agent's practices transparent and machine-queryable — it does not replace legal due diligence.
 
 ---
 
 ## 11. Enforcement Architecture
 
-ADHP is declarative — it defines what agents promise. Enforcement is a separate concern that operates at multiple points in the stack:
+ADHP is declarative — it defines what agents promise. Enforcement is a separate concern that operates at multiple points:
 
-- **Protocol level:** ADHP fields are declared in MCP `initialize` responses and A2A Agent Cards. Clients can check declarations before sending any data.
-- **Gateway level:** MCP gateways read ADHP fields and enforce policies — blocking non-compliant connections, validating delegation chains, and logging audit trails. Policies can be human-defined (compliance teams) or agent-generated (dynamic based on data sensitivity).
-- **Registry level:** Registries filter agents at discovery time by ADHP metadata. The [agent-registry](https://github.com/StevenJohnson998/agent-registry) project plans KYC verification and trust ratings to reduce the risk of bad-faith actors.
-- **Runtime level:** Execution environments (containers, TEEs) physically constrain what agents can do with data, backing up declarations with infrastructure guarantees.
+| Layer | What it does | Example |
+|-------|-------------|---------|
+| **Protocol** | ADHP declared in MCP handshake / A2A Agent Cards | Client checks before sending data |
+| **Gateway** | Reads ADHP, blocks non-compliant connections | Organizational policy enforcement, audit trails |
+| **Registry** | Filters agents at discovery time by ADHP metadata | Trust-based discovery, KYC verification |
+| **Runtime** | Containers/TEEs constrain what agents can physically do | Backs up Level 3-4 declarations with infrastructure |
+| **Cryptographic** | Signed code, encrypted envelopes, TEE attestation | Mathematically proven compliance (Phase 4) |
 
-These layers are complementary. Each raises the cost of non-compliance. Combined, they make violations expensive, detectable, and attributable.
+These layers are complementary. Each raises the cost of non-compliance. Combined, they make violations expensive, detectable, and attributable. No single layer is sufficient on its own.
 
-For implementation patterns at each layer and an honest assessment of their limits, see the [enforcement patterns discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5). For how ADHP integrates as a cross-cutting concern across the stack, see the [architecture discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6).
+For implementation patterns at each layer, see the [enforcement patterns discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5). For architectural rationale, see the [architecture discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6).
 
 ---
 
 ## Contributing
 
-This specification is in draft. We welcome feedback on:
+This specification is a draft. We welcome feedback on:
 - Are the five levels sufficient? Too many? Too few?
 - Are there data handling concerns we've missed?
 - How should verification work in practice?
 - How does this interact with emerging AI regulation?
 
-Please open a [Discussion](../../discussions) or submit an RFC in the `docs/` folder.
+Please open a [Discussion](../../discussions) for ideas, an [Issue](../../issues) for bugs, or submit a PR.

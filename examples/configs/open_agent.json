@@ -1,0 +1,13 @@
+{
+  "level": "open",
+  "training_opt_out": false,
+  "third_party_opt_out": false,
+  "max_retention": "unlimited",
+  "delegation_policy": "unrestricted",
+  "compliance": [],
+  "pii_categories": [],
+  "processing_jurisdiction": [],
+  "storage_jurisdiction": [],
+  "log_jurisdiction": [],
+  "execution_environment": "standard"
+}

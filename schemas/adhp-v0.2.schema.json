@@ -84,6 +84,14 @@
       "type": ["string", "null"],
       "description": "Verification/audit certificate ID"
     },
+    "direct_marketing_opt_out": {
+      "type": "boolean",
+      "description": "Agent commits to NOT using data for direct marketing or commercial prospection (GDPR Art. 21)"
+    },
+    "scientific_research_opt_out": {
+      "type": "boolean",
+      "description": "Agent commits to NOT using data for scientific research purposes (GDPR Art. 89)"
+    },
     "third_party_sharing": {
       "type": "object",
       "description": "Optional detailed third-party sharing information (extended format)",
@@ -160,7 +168,9 @@
           "content_logging_opt_out": { "const": true },
           "max_retention": { "const": "none" },
           "training_opt_out": { "const": true },
-          "third_party_opt_out": { "const": true }
+          "third_party_opt_out": { "const": true },
+          "direct_marketing_opt_out": { "const": true },
+          "scientific_research_opt_out": { "const": true }
         }
       }
     },
@@ -170,7 +180,8 @@
         "properties": {
           "content_logging_opt_out": { "const": true },
           "training_opt_out": { "const": true },
-          "third_party_opt_out": { "const": true }
+          "third_party_opt_out": { "const": true },
+          "direct_marketing_opt_out": { "const": true }
         }
       }
     }
