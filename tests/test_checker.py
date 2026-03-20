@@ -197,7 +197,75 @@ class TestRetentionCheck:
         assert ret_check.passed
 
 
-# ── 7. Multiple requirements + edge cases ────────────────────────────
+# ── 7. Direct marketing checks ──────────────────────────────────────
+
+
+class TestDirectMarketingCheck:
+    def test_direct_marketing_opt_out_required_and_declared_passes(self, strict_policy):
+        """Direct marketing opt-out required + server declares true → PASS."""
+        req = ADHPClientRequirements(require_direct_marketing_opt_out=True)
+        result = check_compliance(req, strict_policy)
+        dm_check = _find_check(result, "direct_marketing")
+        assert dm_check.passed
+
+    def test_direct_marketing_opt_out_required_server_false_fails(self, open_policy):
+        """Direct marketing opt-out required + server doesn't opt out → FAIL."""
+        req = ADHPClientRequirements(require_direct_marketing_opt_out=True)
+        result = check_compliance(req, open_policy)
+        dm_check = _find_check(result, "direct_marketing")
+        assert not dm_check.passed
+
+    def test_direct_marketing_no_requirement_passes(self, open_policy):
+        """No direct marketing requirement → always PASS."""
+        req = ADHPClientRequirements()
+        result = check_compliance(req, open_policy)
+        dm_check = _find_check(result, "direct_marketing")
+        assert dm_check.passed
+
+    def test_direct_marketing_default_false_fails(self):
+        """Default (undeclared) = False, fail-closed."""
+        policy = ADHPPolicy(level="standard")
+        req = ADHPClientRequirements(require_direct_marketing_opt_out=True)
+        result = check_compliance(req, policy)
+        dm_check = _find_check(result, "direct_marketing")
+        assert not dm_check.passed
+
+
+# ── 8. Scientific usage checks ──────────────────────────────────────
+
+
+class TestScientificUsageCheck:
+    def test_server_declares_scientific_client_consents_passes(self, research_policy):
+        """Server declares scientific usage + client consents → PASS."""
+        req = ADHPClientRequirements(allow_scientific_usage=True)
+        result = check_compliance(req, research_policy)
+        sci_check = _find_check(result, "scientific_usage")
+        assert sci_check.passed
+
+    def test_server_declares_scientific_client_does_not_consent_fails(self, research_policy):
+        """Server declares scientific usage + client does NOT consent → FAIL."""
+        req = ADHPClientRequirements(allow_scientific_usage=False)
+        result = check_compliance(req, research_policy)
+        sci_check = _find_check(result, "scientific_usage")
+        assert not sci_check.passed
+        assert "not consented" in sci_check.reason
+
+    def test_server_no_scientific_client_no_consent_passes(self, strict_policy):
+        """Server doesn't declare scientific + client doesn't consent → PASS (nothing to consent to)."""
+        req = ADHPClientRequirements(allow_scientific_usage=False)
+        result = check_compliance(req, strict_policy)
+        sci_check = _find_check(result, "scientific_usage")
+        assert sci_check.passed
+
+    def test_server_no_scientific_client_consents_passes(self, strict_policy):
+        """Server doesn't declare scientific + client consents → PASS (consent given but not needed)."""
+        req = ADHPClientRequirements(allow_scientific_usage=True)
+        result = check_compliance(req, strict_policy)
+        sci_check = _find_check(result, "scientific_usage")
+        assert sci_check.passed
+
+
+# ── 10. Multiple requirements + edge cases ───────────────────────────
 
 
 class TestMultipleRequirements:
@@ -237,8 +305,14 @@ class TestMultipleRequirements:
         result = check_compliance(req, None)
         assert result.compliant
 
+    def test_no_policy_with_direct_marketing_requirement_fails(self):
+        """No policy + direct marketing opt-out required → FAIL."""
+        req = ADHPClientRequirements(require_direct_marketing_opt_out=True)
+        result = check_compliance(req, None)
+        assert not result.compliant
 
-# ── 8. Dict input ────────────────────────────────────────────────────
+
+# ── 11. Dict input ───────────────────────────────────────────────────
 
 
 class TestDictInput:

@@ -91,6 +91,8 @@ class ADHPPolicy(BaseModel):
     log_jurisdiction: list[str] = Field(default_factory=list)
     execution_environment: ExecutionEnvironment = "standard"
     certification: Optional[str] = None
+    direct_marketing_opt_out: bool = False
+    scientific_usage_opt_in: bool = False
     third_party_sharing: Optional[ThirdPartySharing] = None
 
     @model_validator(mode="after")
@@ -119,6 +121,8 @@ class ADHPClientRequirements(BaseModel):
     require_no_third_party: bool = False
     max_retention: Optional[RetentionPeriod] = None
     require_content_logging_opt_out: bool = False
+    require_direct_marketing_opt_out: bool = False
+    allow_scientific_usage: bool = False
     require_dpa_verification: bool = False  # TODO: v0.4 DPA verification layer
 
 

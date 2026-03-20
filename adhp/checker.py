@@ -57,6 +57,12 @@ def check_compliance(
     # 7. Content logging
     checks.append(_check_content_logging(requirements, policy))
 
+    # 8. Direct marketing
+    checks.append(_check_direct_marketing(requirements, policy))
+
+    # 9. Scientific usage
+    checks.append(_check_scientific_usage(requirements, policy))
+
     compliant = all(c.passed for c in checks)
     return ComplianceResult(compliant=compliant, checks=checks)
 
@@ -206,6 +212,45 @@ def _check_content_logging(req: ADHPClientRequirements, pol: ADHPPolicy) -> Chec
     )
 
 
+def _check_direct_marketing(req: ADHPClientRequirements, pol: ADHPPolicy) -> Check:
+    if not req.require_direct_marketing_opt_out:
+        return Check(name="direct_marketing", passed=True, reason="No direct marketing opt-out requirement")
+
+    if pol.direct_marketing_opt_out:
+        return Check(
+            name="direct_marketing",
+            passed=True,
+            reason="Server declares direct_marketing_opt_out: true",
+        )
+    return Check(
+        name="direct_marketing",
+        passed=False,
+        reason="Server does not declare direct_marketing_opt_out: true (client requires it)",
+    )
+
+
+def _check_scientific_usage(req: ADHPClientRequirements, pol: ADHPPolicy) -> Check:
+    if not req.allow_scientific_usage:
+        # Client has NOT consented — if server declares scientific usage, fail
+        if pol.scientific_usage_opt_in:
+            return Check(
+                name="scientific_usage",
+                passed=False,
+                reason="Server declares scientific_usage_opt_in: true but client has not consented",
+            )
+        return Check(
+            name="scientific_usage",
+            passed=True,
+            reason="Server does not declare scientific usage; no consent needed",
+        )
+    # Client consents to scientific usage — always passes
+    return Check(
+        name="scientific_usage",
+        passed=True,
+        reason="Client allows scientific usage",
+    )
+
+
 # ── Missing policy handler ───────────────────────────────────────────
 
 
@@ -220,6 +265,7 @@ def _fail_no_policy(req: ADHPClientRequirements) -> ComplianceResult:
         or req.require_no_third_party
         or req.max_retention is not None
         or req.require_content_logging_opt_out
+        or req.require_direct_marketing_opt_out
     )
 
     if not has_any_requirement:

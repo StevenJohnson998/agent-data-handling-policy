@@ -3,6 +3,7 @@
   "training_opt_out": true,
   "third_party_opt_out": true,
   "content_logging_opt_out": true,
+  "direct_marketing_opt_out": true,
   "max_retention": "request",
   "delegation_policy": "same_or_higher",
   "compliance": ["GDPR", "AI_ACT_EU"],

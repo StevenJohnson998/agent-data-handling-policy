@@ -78,6 +78,8 @@ const TIPS = {
   c_training: "If enabled, the server must declare that it does not use data for model training.",
   c_no_logging: "If enabled, the server must declare that request/response content does not appear in logs.",
   c_sanitization: "If enabled, the server must declare that outputs are scrubbed of source data before returning.",
+  c_no_marketing: "If enabled, the server must declare that it does not use data for direct marketing or commercial prospection (GDPR Art. 21).",
+  c_allow_scientific: "If enabled, you consent to the server using data for scientific research purposes (GDPR Art. 89). If disabled and the server declares scientific usage, the check fails.",
   c_log_juris: "Countries where the server is allowed to keep logs. All server-declared log jurisdictions must be within this list.",
   s_level: "The ADHP level this server declares. Defines the overall data handling posture.",
   s_compliance: "Regulatory frameworks this server declares compliance with.",
@@ -92,6 +94,8 @@ const TIPS = {
   s_training: "Whether this server commits to NOT using data for model training. If not declared, assume data may be used for training.",
   s_logging: "Whether this server commits to NOT logging request/response content. If not declared, assume content may be logged.",
   s_sanitization: "Whether this server commits to scrubbing outputs of source data before returning results. If not declared, assume outputs are not sanitized.",
+  s_marketing: "Whether this server commits to NOT using data for direct marketing or commercial prospection (GDPR Art. 21). If not declared, assume data may be used for prospection.",
+  s_scientific: "Whether this server declares that data MAY be used for scientific research (GDPR Art. 89). Requires client consent to pass compliance checks.",
 };
 
 const s = (obj) => obj;
@@ -275,7 +279,7 @@ const ExpandButton = ({ expanded, onClick }) => (
 
 // Shared ADHP compliance check logic
 function runADHPChecks(opts) {
-  const { clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, clientLogJurisdiction, clientMaxRetention, clientMaxDelegation, clientMinEnvironment, clientRequiredPii, clientNoContentLogging, clientRequireSanitization, serverLevel, serverCompliance, serverTrainingOptOut, serverRetention, serverDelegation, serverPii, serverThirdPartyOptOut, serverJurisdiction, serverStorageJurisdiction, serverLogJurisdiction, serverEnvironment, serverContentLoggingOptOut, serverSanitizationOptIn } = opts;
+  const { clientMinLevel, clientCompliance, clientNoThirdParty, clientNoTraining, clientJurisdiction, clientStorageJurisdiction, clientLogJurisdiction, clientMaxRetention, clientMaxDelegation, clientMinEnvironment, clientRequiredPii, clientNoContentLogging, clientRequireSanitization, clientNoDirectMarketing, clientAllowScientific, serverLevel, serverCompliance, serverTrainingOptOut, serverRetention, serverDelegation, serverPii, serverThirdPartyOptOut, serverJurisdiction, serverStorageJurisdiction, serverLogJurisdiction, serverEnvironment, serverContentLoggingOptOut, serverSanitizationOptIn, serverDirectMarketingOptOut, serverScientificUsageOptIn } = opts;
   const failures = [];
   const checks = [];
   const sIdx = LEVELS.indexOf(serverLevel);
@@ -374,6 +378,22 @@ function runADHPChecks(opts) {
       checks.push({ pass:false, msg:"Output sanitization: server does not opt in (required)" });
     }
   }
+  if (clientNoDirectMarketing) {
+    if (serverDirectMarketingOptOut) {
+      checks.push({ pass:true, msg:"Direct marketing: server opts out" });
+    } else {
+      failures.push(true);
+      checks.push({ pass:false, msg:"Direct marketing: server does not opt out (required)" });
+    }
+  }
+  if (!clientAllowScientific && serverScientificUsageOptIn) {
+    failures.push(true);
+    checks.push({ pass:false, msg:"Scientific usage: server declares research use but client has not consented" });
+  } else if (clientAllowScientific) {
+    checks.push({ pass:true, msg:"Scientific usage: client consents to research use" });
+  } else if (!serverScientificUsageOptIn) {
+    checks.push({ pass:true, msg:"Scientific usage: server does not declare research use" });
+  }
   return { pass: failures.length === 0, checks };
 }
 
@@ -420,6 +440,8 @@ function ClientPanel({ state, setState, expanded, setExpanded, accentColor="#3b8
           <Toggle value={state.clientNoTraining} onChange={v => setState(p => ({...p, clientNoTraining:v}))} label="No training" tip={TIPS.c_training} />
           <Toggle value={state.clientNoContentLogging} onChange={v => setState(p => ({...p, clientNoContentLogging:v}))} label="No content logging" tip={TIPS.c_no_logging} />
           <Toggle value={state.clientRequireSanitization} onChange={v => setState(p => ({...p, clientRequireSanitization:v}))} label="Require sanitization" tip={TIPS.c_sanitization} />
+          <Toggle value={state.clientNoDirectMarketing} onChange={v => setState(p => ({...p, clientNoDirectMarketing:v}))} label="No direct marketing" tip={TIPS.c_no_marketing} />
+          <Toggle value={state.clientAllowScientific} onChange={v => setState(p => ({...p, clientAllowScientific:v}))} label="Allow scientific usage" tip={TIPS.c_allow_scientific} />
         </div>
       )}
     </div>
@@ -468,6 +490,8 @@ function ServerPanel({ state, setState, expanded, setExpanded, accentColor="#f97
           <Toggle value={state.serverTrainingOptOut} onChange={v => setState(p => ({...p, serverTrainingOptOut:v}))} label="Training opt-out" tip={TIPS.s_training} />
           <Toggle value={state.serverContentLoggingOptOut} onChange={v => setState(p => ({...p, serverContentLoggingOptOut:v}))} label="Content logging opt-out" tip={TIPS.s_logging} />
           <Toggle value={state.serverSanitizationOptIn} onChange={v => setState(p => ({...p, serverSanitizationOptIn:v}))} label="Output sanitization opt-in" tip={TIPS.s_sanitization} />
+          <Toggle value={state.serverDirectMarketingOptOut} onChange={v => setState(p => ({...p, serverDirectMarketingOptOut:v}))} label="Direct marketing opt-out" tip={TIPS.s_marketing} />
+          <Toggle value={state.serverScientificUsageOptIn} onChange={v => setState(p => ({...p, serverScientificUsageOptIn:v}))} label="Scientific usage opt-in" tip={TIPS.s_scientific} />
         </div>
       )}
     </div>
@@ -524,6 +548,8 @@ function defaultClientState() {
     clientRequiredPii: [],
     clientNoContentLogging: false,
     clientRequireSanitization: false,
+    clientNoDirectMarketing: false,
+    clientAllowScientific: false,
   };
 }
 function defaultServerState() {
@@ -541,6 +567,8 @@ function defaultServerState() {
     serverThirdPartyOptOut: true,
     serverContentLoggingOptOut: true,
     serverSanitizationOptIn: true,
+    serverDirectMarketingOptOut: true,
+    serverScientificUsageOptIn: false,
   };
 }
 
@@ -586,7 +614,9 @@ function A2ADemo() {
             storage_jurisdiction: server.serverStorageJurisdiction,
             log_jurisdiction: server.serverLogJurisdiction,
             execution_environment: server.serverEnvironment,
-            third_party_opt_out: server.serverThirdPartyOptOut
+            third_party_opt_out: server.serverThirdPartyOptOut,
+            direct_marketing_opt_out: server.serverDirectMarketingOptOut,
+            scientific_usage_opt_in: server.serverScientificUsageOptIn
           }
         }
       ]
@@ -718,7 +748,9 @@ function MCPDemo() {
           execution_environment: server.serverEnvironment,
           content_logging_opt_out: server.serverContentLoggingOptOut,
           output_sanitization_opt_in: server.serverSanitizationOptIn,
-          third_party_opt_out: server.serverThirdPartyOptOut
+          third_party_opt_out: server.serverThirdPartyOptOut,
+          direct_marketing_opt_out: server.serverDirectMarketingOptOut,
+          scientific_usage_opt_in: server.serverScientificUsageOptIn
         }
       },
       serverInfo: { name: "Demo Agent", version: "1.0.0" }
