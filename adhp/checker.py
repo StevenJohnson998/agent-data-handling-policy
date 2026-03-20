@@ -60,8 +60,8 @@ def check_compliance(
     # 8. Direct marketing
     checks.append(_check_direct_marketing(requirements, policy))
 
-    # 9. Scientific usage
-    checks.append(_check_scientific_usage(requirements, policy))
+    # 9. Scientific research
+    checks.append(_check_scientific_research(requirements, policy))
 
     compliant = all(c.passed for c in checks)
     return ComplianceResult(compliant=compliant, checks=checks)
@@ -229,25 +229,20 @@ def _check_direct_marketing(req: ADHPClientRequirements, pol: ADHPPolicy) -> Che
     )
 
 
-def _check_scientific_usage(req: ADHPClientRequirements, pol: ADHPPolicy) -> Check:
-    if not req.allow_scientific_usage:
-        # Client has NOT consented — if server declares scientific usage, fail
-        if pol.scientific_usage_opt_in:
-            return Check(
-                name="scientific_usage",
-                passed=False,
-                reason="Server declares scientific_usage_opt_in: true but client has not consented",
-            )
+def _check_scientific_research(req: ADHPClientRequirements, pol: ADHPPolicy) -> Check:
+    if not req.require_scientific_research_opt_out:
+        return Check(name="scientific_research", passed=True, reason="No scientific research opt-out requirement")
+
+    if pol.scientific_research_opt_out:
         return Check(
-            name="scientific_usage",
+            name="scientific_research",
             passed=True,
-            reason="Server does not declare scientific usage; no consent needed",
+            reason="Server declares scientific_research_opt_out: true",
         )
-    # Client consents to scientific usage — always passes
     return Check(
-        name="scientific_usage",
-        passed=True,
-        reason="Client allows scientific usage",
+        name="scientific_research",
+        passed=False,
+        reason="Server does not declare scientific_research_opt_out: true (client requires it)",
     )
 
 
@@ -266,6 +261,7 @@ def _fail_no_policy(req: ADHPClientRequirements) -> ComplianceResult:
         or req.max_retention is not None
         or req.require_content_logging_opt_out
         or req.require_direct_marketing_opt_out
+        or req.require_scientific_research_opt_out
     )
 
     if not has_any_requirement:

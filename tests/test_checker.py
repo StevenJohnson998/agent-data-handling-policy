@@ -231,37 +231,37 @@ class TestDirectMarketingCheck:
         assert not dm_check.passed
 
 
-# ── 8. Scientific usage checks ──────────────────────────────────────
+# ── 8. Scientific research checks ──────────────────────────────────────
 
 
-class TestScientificUsageCheck:
-    def test_server_declares_scientific_client_consents_passes(self, research_policy):
-        """Server declares scientific usage + client consents → PASS."""
-        req = ADHPClientRequirements(allow_scientific_usage=True)
+class TestScientificResearchCheck:
+    def test_no_requirement_passes(self, research_policy):
+        """No scientific research opt-out requirement → PASS regardless of server."""
+        req = ADHPClientRequirements(require_scientific_research_opt_out=False)
         result = check_compliance(req, research_policy)
-        sci_check = _find_check(result, "scientific_usage")
+        sci_check = _find_check(result, "scientific_research")
         assert sci_check.passed
 
-    def test_server_declares_scientific_client_does_not_consent_fails(self, research_policy):
-        """Server declares scientific usage + client does NOT consent → FAIL."""
-        req = ADHPClientRequirements(allow_scientific_usage=False)
+    def test_server_opts_out_client_requires_passes(self, strict_policy):
+        """Server declares scientific_research_opt_out + client requires it → PASS."""
+        req = ADHPClientRequirements(require_scientific_research_opt_out=True)
+        result = check_compliance(req, strict_policy)
+        sci_check = _find_check(result, "scientific_research")
+        assert sci_check.passed
+
+    def test_server_does_not_opt_out_client_requires_fails(self, research_policy):
+        """Server does NOT declare opt-out + client requires it → FAIL."""
+        req = ADHPClientRequirements(require_scientific_research_opt_out=True)
         result = check_compliance(req, research_policy)
-        sci_check = _find_check(result, "scientific_usage")
+        sci_check = _find_check(result, "scientific_research")
         assert not sci_check.passed
-        assert "not consented" in sci_check.reason
+        assert "does not declare" in sci_check.reason
 
-    def test_server_no_scientific_client_no_consent_passes(self, strict_policy):
-        """Server doesn't declare scientific + client doesn't consent → PASS (nothing to consent to)."""
-        req = ADHPClientRequirements(allow_scientific_usage=False)
-        result = check_compliance(req, strict_policy)
-        sci_check = _find_check(result, "scientific_usage")
-        assert sci_check.passed
-
-    def test_server_no_scientific_client_consents_passes(self, strict_policy):
-        """Server doesn't declare scientific + client consents → PASS (consent given but not needed)."""
-        req = ADHPClientRequirements(allow_scientific_usage=True)
-        result = check_compliance(req, strict_policy)
-        sci_check = _find_check(result, "scientific_usage")
+    def test_server_opts_out_client_does_not_require_passes(self, zero_trace_policy):
+        """Server declares opt-out + client doesn't require it → PASS."""
+        req = ADHPClientRequirements(require_scientific_research_opt_out=False)
+        result = check_compliance(req, zero_trace_policy)
+        sci_check = _find_check(result, "scientific_research")
         assert sci_check.passed
 
 

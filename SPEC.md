@@ -111,7 +111,7 @@ Beyond the overall level, each agent declares specific properties in its manifes
 | `delegation_depth` | integer (optional) | Maximum depth of delegation chain allowed |
 | `output_sanitization_opt_in` | boolean | Whether the agent commits to scrubbing outputs of source data |
 | `direct_marketing_opt_out` | boolean | Whether the agent commits to NOT using data for direct marketing or commercial prospection ([GDPR Art. 21](https://gdpr-info.eu/art-21-gdpr/)) |
-| `scientific_usage_opt_in` | boolean | Whether the agent declares data MAY be used for scientific research ([GDPR Art. 89](https://gdpr-info.eu/art-89-gdpr/)) |
+| `scientific_research_opt_out` | boolean | Whether the agent commits to NOT using data for scientific research ([GDPR Art. 89](https://gdpr-info.eu/art-89-gdpr/)) |
 | `certification` | string (nullable) | Future: ID of a verification/audit certificate |
 
 ### 4.2 Privacy & Compliance Properties
@@ -149,12 +149,10 @@ All boolean fields follow a consistent principle: **undeclared = assume the wors
 - `content_logging_opt_out: true` → the agent commits to NOT logging content
 - `direct_marketing_opt_out: true` → the agent commits to NOT using data for direct marketing or prospection
 - `output_sanitization_opt_in: true` → the agent commits to scrubbing outputs
-- `scientific_usage_opt_in: true` → the agent declares data MAY be used for scientific research (requires client consent)
+- `scientific_research_opt_out: true` → the agent commits to NOT using data for scientific research
 - If a field is not declared, assume the agent does NOT protect.
 
 This "fail-closed" design means agents must actively declare their protections. Silence is treated as absence of protection.
-
-> **Note on `scientific_usage_opt_in`:** This field has a unique consent-based semantic. Unlike opt-out fields where the server commits to a restriction, here the server *declares an intent* (research use) and the client must *consent* (`allow_scientific_usage: true`). If the server declares scientific usage and the client does not consent, the compliance check fails. This follows the GDPR Art. 89 model: scientific research benefits from a compatibility presumption, but the data subject retains the right to object. Agents declaring this field should ensure pseudonymization measures are in place per Art. 89(1).
 
 ### 4.5 Example Manifest
 
@@ -165,7 +163,7 @@ This "fail-closed" design means agents must actively declare their protections. 
     "level": "strict",
     "training_opt_out": true,
     "direct_marketing_opt_out": true,
-    "scientific_usage_opt_in": false,
+    "scientific_research_opt_out": true,
     "max_retention": "request",
     "delegation_policy": "same_or_higher",
     "compliance": ["GDPR", "AI_ACT_EU"],
