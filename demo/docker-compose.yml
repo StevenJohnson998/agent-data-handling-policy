@@ -2,8 +2,6 @@ services:
   adhp-demo:
     build: ./server
     container_name: adhp-demo-server
-    ports:
-      - "8910:8000"
     command: ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
     restart: unless-stopped
     read_only: true
@@ -16,7 +14,14 @@ services:
     tmpfs:
       - /tmp:size=10m
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=2)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - default
+      - shared
+
+networks:
+  shared:
+    external: true

@@ -3,6 +3,8 @@
   "training_opt_out": true,
   "third_party_opt_out": true,
   "content_logging_opt_out": true,
+  "direct_marketing_opt_out": true,
+  "scientific_usage_opt_in": false,
   "output_sanitization_opt_in": true,
   "max_retention": "request",
   "delegation_policy": "same_or_higher",

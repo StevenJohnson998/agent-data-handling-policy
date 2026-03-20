@@ -13,7 +13,7 @@
 
 When an AI agent processes your data, what happens to it? Is it stored? Used for training? Forwarded to another service? Processed in a different country?
 
-Traditional security frameworks (ISO 27001, GDPR) focus on *who can access data*. ADHP addresses a different question — one that becomes critical in a world of autonomous AI agents: **what does the agent do with the data during and after processing?**
+Traditional frameworks address organizational compliance (GDPR) and information security controls (ISO 27001). The Agent Data Handling Policy (ADHP) addresses a different question specific to the agentic world: **what does the agent do with the data during and after processing?**
 
 This specification defines a standardized, machine-readable way for AI agents to declare their data handling practices. It enables orchestrators, gateways, and registries to make informed decisions **before any data is sent** — based on the sensitivity of the data and the regulatory context.
 
@@ -110,6 +110,8 @@ Beyond the overall level, each agent declares specific properties in its manifes
 | `delegation_policy` | enum | Sub-agent policy: `none`, `same_or_higher`, `unrestricted` |
 | `delegation_depth` | integer (optional) | Maximum depth of delegation chain allowed |
 | `output_sanitization_opt_in` | boolean | Whether the agent commits to scrubbing outputs of source data |
+| `direct_marketing_opt_out` | boolean | Whether the agent commits to NOT using data for direct marketing or commercial prospection ([GDPR Art. 21](https://gdpr-info.eu/art-21-gdpr/)) |
+| `scientific_usage_opt_in` | boolean | Whether the agent declares data MAY be used for scientific research ([GDPR Art. 89](https://gdpr-info.eu/art-89-gdpr/)) |
 | `certification` | string (nullable) | Future: ID of a verification/audit certificate |
 
 ### 4.2 Privacy & Compliance Properties
@@ -145,10 +147,14 @@ All boolean fields follow a consistent principle: **undeclared = assume the wors
 
 - `training_opt_out: true` → the agent commits to NOT training on data
 - `content_logging_opt_out: true` → the agent commits to NOT logging content
+- `direct_marketing_opt_out: true` → the agent commits to NOT using data for direct marketing or prospection
 - `output_sanitization_opt_in: true` → the agent commits to scrubbing outputs
+- `scientific_usage_opt_in: true` → the agent declares data MAY be used for scientific research (requires client consent)
 - If a field is not declared, assume the agent does NOT protect.
 
 This "fail-closed" design means agents must actively declare their protections. Silence is treated as absence of protection.
+
+> **Note on `scientific_usage_opt_in`:** This field has a unique consent-based semantic. Unlike opt-out fields where the server commits to a restriction, here the server *declares an intent* (research use) and the client must *consent* (`allow_scientific_usage: true`). If the server declares scientific usage and the client does not consent, the compliance check fails. This follows the GDPR Art. 89 model: scientific research benefits from a compatibility presumption, but the data subject retains the right to object. Agents declaring this field should ensure pseudonymization measures are in place per Art. 89(1).
 
 ### 4.5 Example Manifest
 
@@ -158,6 +164,8 @@ This "fail-closed" design means agents must actively declare their protections. 
   "data_handling": {
     "level": "strict",
     "training_opt_out": true,
+    "direct_marketing_opt_out": true,
+    "scientific_usage_opt_in": false,
     "max_retention": "request",
     "delegation_policy": "same_or_higher",
     "compliance": ["GDPR", "AI_ACT_EU"],
@@ -305,7 +313,7 @@ ADHP is designed to **complement, not replace**, existing standards. It provides
 | Standard | Focus | How ADHP Complements |
 |----------|-------|---------------------|
 | **GDPR** | Legal framework for personal data in the EU | Technical declaration of compliance-relevant practices across agent chains |
-| **HIPAA** | Health data protection (US) | Agents declare health PII handling; clients filter by HIPAA compliance |
+| **HIPAA** | Health data protection (US) | Agents declare health PII handling; clients filter by declared HIPAA support |
 | **EU AI Act** | AI system regulation (EU) | Machine-readable transparency for Article 50 obligations |
 | **CCPA** | Consumer privacy (US) | Third-party sharing declarations, verifiable at runtime |
 | **ISO 27001** | Who can access data within an organization | What happens to data after an agent processes it |

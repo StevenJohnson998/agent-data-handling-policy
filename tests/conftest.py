@@ -44,6 +44,7 @@ def strict_policy():
         training_opt_out=True,
         third_party_opt_out=True,
         content_logging_opt_out=True,
+        direct_marketing_opt_out=True,
         max_retention="request",
         delegation_policy="same_or_higher",
         compliance=["GDPR", "HIPAA"],
@@ -61,6 +62,8 @@ def zero_trace_policy():
         training_opt_out=True,
         third_party_opt_out=True,
         content_logging_opt_out=True,
+        direct_marketing_opt_out=True,
+        scientific_usage_opt_in=False,
         max_retention="none",
         delegation_policy="none",
         compliance=["GDPR", "HIPAA", "AI_ACT_EU"],
@@ -78,11 +81,29 @@ def eu_finance_policy():
         training_opt_out=True,
         third_party_opt_out=True,
         content_logging_opt_out=True,
+        direct_marketing_opt_out=True,
         max_retention="request",
         delegation_policy="same_or_higher",
         compliance=["GDPR", "AI_ACT_EU"],
         pii_categories=["email", "financial", "identity"],
         processing_jurisdiction=["DE", "FR"],
+        storage_jurisdiction=["DE"],
+        log_jurisdiction=["DE"],
+    )
+
+
+@pytest.fixture
+def research_policy():
+    return ADHPPolicy(
+        level="standard",
+        training_opt_out=True,
+        direct_marketing_opt_out=True,
+        scientific_usage_opt_in=True,
+        max_retention="session",
+        session_ttl="4h",
+        delegation_policy="same_or_higher",
+        compliance=["GDPR"],
+        processing_jurisdiction=["DE"],
         storage_jurisdiction=["DE"],
         log_jurisdiction=["DE"],
     )
