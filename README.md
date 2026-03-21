@@ -213,7 +213,7 @@ adhp init --level standard --compliance GDPR --jurisdiction DE
 
 | Project | What | Link |
 |---------|------|------|
-| **Agent Registry** | Trust-based discovery for AI agents — find the right agent, verified. Uses ADHP natively. | [GitHub](https://github.com/StevenJohnson998/agent-registry) |
+| **AgentLedger** | Trust-based discovery for AI agents — find the right agent, verified. Uses ADHP natively. | [GitHub](https://github.com/StevenJohnson998/AgentLedger) |
 | **MCP** | Protocol for AI agent ↔ tool communication (Anthropic) | [modelcontextprotocol.io](https://modelcontextprotocol.io) |
 | **A2A** | Protocol for agent ↔ agent communication (Google) | [google.github.io/A2A](https://google.github.io/A2A) |
 
