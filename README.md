@@ -77,7 +77,7 @@ Each preset level satisfies all lower requirements: a `strict` handler always ma
 {
   "adhp": "0.3",
   "policies": [{
-    "framework": "gdpr",
+    "frameworks": ["gdpr"],
     "preset": "standard",
     "extras": ["no_training"],
     "max_retention": "P6M",
@@ -91,7 +91,7 @@ Each preset level satisfies all lower requirements: a `strict` handler always ma
 {
   "adhp": "0.3",
   "require": [{
-    "framework": "gdpr",
+    "frameworks": ["gdpr"],
     "min_preset": "standard",
     "extras": ["no_training"],
     "accepted_jurisdictions": ["EU"],
@@ -100,7 +100,7 @@ Each preset level satisfies all lower requirements: a `strict` handler always ma
 }
 ```
 
-The matching algorithm runs **six checks**: framework, preset level, extras, jurisdiction, data categories, and retention. All pass → compatible. Any fails → incompatible.
+The matching algorithm runs **six checks**: frameworks, preset level, extras, jurisdiction, data categories, and retention. All pass → compatible. Any fails → incompatible.
 
 ### Protocol integration
 
@@ -156,7 +156,7 @@ Schema: [`schemas/adhp-v0.3.schema.json`](schemas/adhp-v0.3.schema.json) (JSON S
 The simplest valid policy:
 
 ```json
-{ "adhp": "0.3", "policies": [{ "framework": "gdpr", "preset": "open" }] }
+{ "adhp": "0.3", "policies": [{ "frameworks": ["gdpr"], "preset": "open" }] }
 ```
 
 A responsible baseline (most common):
@@ -165,7 +165,7 @@ A responsible baseline (most common):
 {
   "adhp": "0.3",
   "policies": [{
-    "framework": "gdpr",
+    "frameworks": ["gdpr"],
     "preset": "standard",
     "extras": ["no_training"],
     "max_retention": "P1Y",

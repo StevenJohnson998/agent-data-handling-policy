@@ -46,10 +46,18 @@
       "description": "Protection level, ordered: open < standard < strict < zero_trace."
     },
 
-    "framework": {
+    "frameworkId": {
       "type": "string",
       "enum": ["gdpr", "uk_gdpr", "ccpa", "ai_act", "lgpd", "popia", "pipeda", "hipaa"],
       "description": "Regulatory framework identifier."
+    },
+
+    "frameworks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/frameworkId" },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Regulatory frameworks this entry covers."
     },
 
     "extra": {
@@ -111,13 +119,13 @@
 
     "policyEntry": {
       "type": "object",
-      "required": ["framework", "preset"],
+      "required": ["frameworks", "preset"],
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for this policy entry."
         },
-        "framework": { "$ref": "#/$defs/framework" },
+        "frameworks": { "$ref": "#/$defs/frameworks" },
         "preset": { "$ref": "#/$defs/preset" },
         "extras": {
           "type": "array",
@@ -158,9 +166,9 @@
 
     "requirementEntry": {
       "type": "object",
-      "required": ["framework", "min_preset"],
+      "required": ["frameworks", "min_preset"],
       "properties": {
-        "framework": { "$ref": "#/$defs/framework" },
+        "frameworks": { "$ref": "#/$defs/frameworks" },
         "min_preset": { "$ref": "#/$defs/preset" },
         "extras": {
           "type": "array",

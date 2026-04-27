@@ -109,11 +109,14 @@ function parseRetention(val) {
 function runMatch(policy, requirement) {
   const checks = [];
 
-  // Check 1: Framework
-  if (policy.framework === requirement.framework) {
-    checks.push({ pass: true, check: "framework", msg: `Framework: ${policy.framework} == ${requirement.framework}` });
+  // Check 1: Frameworks (subset inclusion)
+  const reqFrameworks = requirement.frameworks || [];
+  const policyFrameworks = new Set(policy.frameworks || []);
+  const missingFw = reqFrameworks.filter(f => !policyFrameworks.has(f));
+  if (missingFw.length === 0) {
+    checks.push({ pass: true, check: "frameworks", msg: `Frameworks: [${reqFrameworks.join(", ")}] ⊆ [${[...policyFrameworks].join(", ")}]` });
   } else {
-    checks.push({ pass: false, check: "framework", msg: `Framework: ${policy.framework} != ${requirement.framework}` });
+    checks.push({ pass: false, check: "frameworks", msg: `Frameworks: policy missing [${missingFw.join(", ")}]` });
   }
 
   // Check 2: Preset
@@ -365,8 +368,8 @@ function HandlerPanel({ state, setState, accentColor = "#f97316", label = "Data 
         Declares data handling practices (policy).
       </div>
 
-      <SectionLabel>Framework</SectionLabel>
-      <ChipSelect options={FRAMEWORKS.slice(0, 4)} selected={[state.framework]} onChange={f => setState(p => ({ ...p, framework: f }))} color={accentColor} />
+      <SectionLabel>Frameworks</SectionLabel>
+      <ChipSelect options={FRAMEWORKS} selected={state.frameworks} onChange={f => toggleList(state.frameworks, v => setState(p => ({ ...p, frameworks: v })), f)} color={accentColor} />
 
       <SectionLabel>Preset</SectionLabel>
       <div style={s({ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "6px" })}>
@@ -407,8 +410,8 @@ function SenderPanel({ state, setState, accentColor = "#3b82f6", label = "Data S
         Declares data handling expectations (requirements).
       </div>
 
-      <SectionLabel>Framework</SectionLabel>
-      <ChipSelect options={FRAMEWORKS.slice(0, 4)} selected={[state.framework]} onChange={f => setState(p => ({ ...p, framework: f }))} color={accentColor} />
+      <SectionLabel>Frameworks</SectionLabel>
+      <ChipSelect options={FRAMEWORKS} selected={state.frameworks} onChange={f => toggleList(state.frameworks, v => setState(p => ({ ...p, frameworks: v })), f)} color={accentColor} />
 
       <SectionLabel>Min Preset</SectionLabel>
       <div style={s({ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "6px" })}>
@@ -470,16 +473,16 @@ function ResultPanel({ result, hasExecuted }) {
 // ═══════════════════════════════════════════════════════════
 
 function defaultSender() {
-  return { framework: "gdpr", min_preset: "standard", extras: ["no_training"], accepted_jurisdictions: ["EU"], max_retention: "P1Y", data_categories: ["personal"] };
+  return { frameworks: ["gdpr"], min_preset: "standard", extras: ["no_training"], accepted_jurisdictions: ["EU"], max_retention: "P1Y", data_categories: ["personal"] };
 }
 
 function defaultHandler() {
-  return { framework: "gdpr", preset: "standard", extras: ["no_training", "cascading_information"], max_retention: "P6M", juris_processing: ["DE"], juris_storage: ["DE"], accepted_data: ["general", "personal"] };
+  return { frameworks: ["gdpr"], preset: "standard", extras: ["no_training", "cascading_information"], max_retention: "P6M", juris_processing: ["DE"], juris_storage: ["DE"], accepted_data: ["general", "personal"] };
 }
 
 // Build JSON objects from state
 function buildPolicy(h) {
-  const policy = { framework: h.framework, preset: h.preset };
+  const policy = { frameworks: h.frameworks, preset: h.preset };
   if (h.extras.length > 0) policy.extras = h.extras;
   if (h.max_retention) policy.max_retention = h.max_retention;
   const juris = {};
@@ -491,7 +494,7 @@ function buildPolicy(h) {
 }
 
 function buildRequirement(r) {
-  const req = { framework: r.framework, min_preset: r.min_preset };
+  const req = { frameworks: r.frameworks, min_preset: r.min_preset };
   if (r.extras.length > 0) req.extras = r.extras;
   if (r.accepted_jurisdictions.length > 0) req.accepted_jurisdictions = r.accepted_jurisdictions;
   if (r.max_retention) req.max_retention = r.max_retention;
@@ -532,7 +535,7 @@ function A2ADemo() {
       </div>
 
       <div className="pg-grid" style={s({ display: "grid", gridTemplateColumns: "240px 1fr 240px", gap: "12px" })}>
-        <SenderPanel state={sender} setState={setSender} label="A2A Caller" />
+        <SenderPanel state={sender} setState={setSender} label="Data Sender" />
 
         <div style={s({ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 })}>
           <div className="pg-center-grid" style={s({ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" })}>
@@ -551,7 +554,7 @@ function A2ADemo() {
           <ResultPanel result={result} hasExecuted={hasExecuted} />
         </div>
 
-        <HandlerPanel state={handler} setState={setHandler} label="A2A Agent" />
+        <HandlerPanel state={handler} setState={setHandler} label="Data Handler" />
       </div>
     </div>
   );
@@ -600,7 +603,7 @@ function MCPDemo() {
       </div>
 
       <div className="pg-grid" style={s({ display: "grid", gridTemplateColumns: "240px 1fr 240px", gap: "12px" })}>
-        <SenderPanel state={sender} setState={setSender} label="MCP Client" />
+        <SenderPanel state={sender} setState={setSender} label="Data Sender" />
 
         <div style={s({ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 })}>
           <div className="pg-center-grid" style={s({ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" })}>
@@ -619,7 +622,7 @@ function MCPDemo() {
           <ResultPanel result={result} hasExecuted={hasExecuted} />
         </div>
 
-        <HandlerPanel state={handler} setState={setHandler} label="MCP Server" />
+        <HandlerPanel state={handler} setState={setHandler} label="Data Handler" />
       </div>
     </div>
   );

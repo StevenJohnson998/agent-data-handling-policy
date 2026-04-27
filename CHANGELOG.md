@@ -29,9 +29,10 @@ v0.3 is not backward-compatible with v0.2. The specification, schema, and data m
 - Logging legal floor note: multi-jurisdiction handlers subject to any declared jurisdiction's requirements
 
 **Frameworks:**
-- Per-framework policies (replacing flat `compliance[]` array)
+- `frameworks` array per policy/requirement (replacing flat `compliance[]` array and singular `framework` string)
 - 8 framework IDs defined: gdpr, uk_gdpr, ccpa, ai_act, lgpd, popia, pipeda, hipaa
-- Multi-framework support: handler can declare separate policies per framework
+- Multi-framework support: single policy entry can cover multiple frameworks (e.g., `["gdpr", "ai_act"]`)
+- Check 1 uses subset inclusion: `requirement.frameworks ⊆ policy.frameworks`
 
 **Jurisdiction:**
 - Per-operation location declarations (processing, storage, logging, transfer)

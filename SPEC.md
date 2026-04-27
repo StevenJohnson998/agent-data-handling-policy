@@ -67,7 +67,7 @@ Same schema structure, different semantic roles. This gives implementations free
 ADHP is designed for fail-closed interpretation. The matching algorithm (§10) treats missing or malformed declarations as the most restrictive case:
 
 - No policy declared → data handler is treated as having no protections.
-- Missing framework → no match for that framework.
+- Missing framework → no match (required frameworks not covered by any policy).
 - Missing extras → no additional protections beyond the preset.
 - Missing jurisdiction → no match for any jurisdiction requirement.
 
@@ -105,7 +105,7 @@ ADHP uses neutral terms (`data handler`, `data sender`) rather than legal role t
 
 ### 4.1 Policy (Data Handler)
 
-A data handler declares its data handling practices as an array of per-framework policies.
+A data handler declares its data handling practices as an array of policies. Each policy entry declares which regulatory frameworks it covers.
 
 ```json
 {
@@ -113,7 +113,7 @@ A data handler declares its data handling practices as an array of per-framework
   "policies": [
     {
       "id": "eu-strict",
-      "framework": "gdpr",
+      "frameworks": ["gdpr", "ai_act"],
       "preset": "strict",
       "extras": ["tee_execution"],
       "jurisdiction": {
@@ -124,7 +124,7 @@ A data handler declares its data handling practices as an array of per-framework
     },
     {
       "id": "us-standard",
-      "framework": "ccpa",
+      "frameworks": ["ccpa"],
       "preset": "standard",
       "extras": ["no_training"],
       "max_retention": "P1Y",
@@ -137,7 +137,7 @@ A data handler declares its data handling practices as an array of per-framework
 }
 ```
 
-A data handler MAY declare multiple policies for the same framework, offering different configurations (e.g., `gdpr:standard` with EU-wide storage and `gdpr:strict` with DE-only storage). The matching algorithm finds any compatible entry per required framework.
+A single policy entry MAY cover multiple frameworks simultaneously (e.g., `["gdpr", "ai_act"]` when the same configuration satisfies both). A data handler MAY also declare multiple policies for the same framework, offering different configurations (e.g., `gdpr:standard` with EU-wide storage and `gdpr:strict` with DE-only storage). The matching algorithm finds any compatible entry per required framework.
 
 **Fields (top level):**
 
@@ -151,7 +151,7 @@ A data handler MAY declare multiple policies for the same framework, offering di
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | string | No | Unique identifier for this policy entry. Used in match results and policy selection. |
-| `framework` | string | Yes | Regulatory framework ([§5](#5-frameworks)). |
+| `frameworks` | array of strings | Yes | Regulatory frameworks this policy covers ([§5](#5-frameworks)). At least one. |
 | `preset` | string | Yes | Protection level ([§6](#6-presets)). |
 | `extras` | array of strings | No | Additional constraints ([§7](#7-extras)). Defaults to `[]`. |
 | `max_retention` | string | Conditional | Maximum retention duration. **Required for `standard` preset** and must be a concrete value (`none`, `session`, or ISO 8601 duration) — `legal_max` is not allowed for `standard` (use `open` if no retention commitment is made). Optional for others (defaults: `open` → `legal_max`, `strict` → `session`, `zero_trace` → `none`). Accepts either a named value (`none`, `session`, `legal_max`) or an ISO 8601 duration (P = Period prefix, T = time separator: `P7D` = 7 days, `P6M` = 6 months, `P2Y` = 2 years, `PT4H` = 4 hours). Ordering: `none` < `session` < ISO 8601 durations (ascending) < `legal_max`. |
@@ -160,14 +160,14 @@ A data handler MAY declare multiple policies for the same framework, offering di
 
 ### 4.2 Requirements (Data Sender)
 
-Symmetrically to the policy, a data sender declares its data handling expectations as an array of per-framework requirements.
+Symmetrically to the policy, a data sender declares its data handling expectations as an array of requirements. Each requirement declares which frameworks it demands.
 
 ```json
 {
   "adhp": "0.3",
   "require": [
     {
-      "framework": "gdpr",
+      "frameworks": ["gdpr"],
       "min_preset": "standard",
       "extras": ["no_log"],
       "accepted_jurisdictions": ["EU"]
@@ -180,7 +180,7 @@ Symmetrically to the policy, a data sender declares its data handling expectatio
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `framework` | string | Yes | Required regulatory framework. |
+| `frameworks` | array of strings | Yes | Required regulatory frameworks. The data handler must cover all listed frameworks in a single policy entry. |
 | `min_preset` | string | Yes | Minimum acceptable preset level. |
 | `extras` | array of strings | No | Required extras the data handler must declare ([§7](#7-extras)). Defaults to `[]`. |
 | `accepted_jurisdictions` | array of strings | No | Accepted country/region codes. See [§9.2](#92-data-sender-requirements). |
@@ -194,19 +194,19 @@ Symmetrically to the policy, a data sender declares its data handling expectatio
 The simplest valid policy (using `open` — no `max_retention` required):
 
 ```json
-{ "adhp": "0.3", "policies": [{ "framework": "gdpr", "preset": "open" }] }
+{ "adhp": "0.3", "policies": [{ "frameworks": ["gdpr"], "preset": "open" }] }
 ```
 
 A minimal `standard` policy (`max_retention` is required):
 
 ```json
-{ "adhp": "0.3", "policies": [{ "framework": "gdpr", "preset": "standard", "max_retention": "P1Y" }] }
+{ "adhp": "0.3", "policies": [{ "frameworks": ["gdpr"], "preset": "standard", "max_retention": "P1Y" }] }
 ```
 
 The simplest valid requirement:
 
 ```json
-{ "adhp": "0.3", "require": [{ "framework": "gdpr", "min_preset": "standard" }] }
+{ "adhp": "0.3", "require": [{ "frameworks": ["gdpr"], "min_preset": "standard" }] }
 ```
 
 ---
@@ -230,7 +230,7 @@ Adding a new framework requires defining its preset semantics and jurisdiction m
 
 > **Note:** Some frameworks listed above (`ai_act`, `hipaa`, `popia`, `pipeda`) have framework IDs defined but their per-framework preset semantics (jurisdiction matrix) are not yet published. Declaring these frameworks is valid but the legal mapping layer is pending. `gdpr`, `uk_gdpr`, and `ccpa` have the most developed preset definitions.
 
-Both sides can declare multiple frameworks simultaneously. A data handler operating in both the EU and UK would declare separate policies for `gdpr` and `uk_gdpr`, potentially at different preset levels. A data sender processing EU personal data with AI could require both `gdpr` and `ai_act`: the data handler must satisfy all required frameworks to match.
+Both sides can declare multiple frameworks simultaneously. A data handler operating in both the EU and UK could declare a single policy covering `["gdpr", "uk_gdpr"]` when the configuration is identical, or separate policies when preset levels differ. A data sender processing EU personal data with AI could require `["gdpr", "ai_act"]` in a single requirement entry: the data handler must have a policy that covers both frameworks to match.
 
 ---
 
@@ -444,7 +444,7 @@ Some regulatory contexts require different jurisdiction rules for different oper
 
 ```json
 {
-  "framework": "gdpr",
+  "frameworks": ["gdpr"],
   "min_preset": "strict",
   "accepted_jurisdictions_detail": {
     "storage": ["FR"],
@@ -481,12 +481,13 @@ For each requirement R in sender.require:
        Find policy P where P.id == R.policy_id. Run checks 1-6 on P.
        If not found: INCOMPATIBLE (no policy with this id).
      If R.policy_id is NOT defined:
-       Find ALL policies where P.framework == R.framework.
-       Run checks 1-6 on each. Any pass: COMPATIBLE (best match selected).
+       Find ALL policies where R.frameworks ⊆ P.frameworks.
+       Run checks 2-6 on each. Any pass: COMPATIBLE (best match selected).
        None pass: INCOMPATIBLE.
 
-  1. FRAMEWORK (filter, exact match)
-     P.framework == R.framework.
+  1. FRAMEWORKS (subset inclusion)
+     R.frameworks ⊆ P.frameworks.
+     All frameworks required by the sender must be covered by the policy.
 
   2. PRESET (ordered, higher = more protective)
      P.preset >= R.min_preset
@@ -544,7 +545,7 @@ Result includes the id of the matched policy when available.
 
 | Check | Operator | Direction |
 |-------|----------|-----------|
-| Framework | `==` | Filter (exact) |
+| Frameworks | `⊆` | Required frameworks must be covered by policy |
 | Preset | `>=` | Higher preset satisfies lower requirement |
 | Extras | `⊆` | More extras satisfies fewer required extras |
 | Jurisdiction | `⊆` | Tighter locations satisfies broader acceptance |
@@ -572,7 +573,7 @@ The following is a non-normative example of a match result:
   "compatible": true,
   "matches": [
     {
-      "framework": "gdpr",
+      "frameworks": ["gdpr"],
       "compatible_policies": ["eu-strict", "eu-standard"]
     }
   ]
@@ -584,7 +585,7 @@ The following is a non-normative example of a match result:
   "compatible": false,
   "failures": [
     {
-      "framework": "gdpr",
+      "frameworks": ["gdpr"],
       "check": "jurisdiction",
       "policy_value": ["US"],
       "requirement_value": ["EU"],
@@ -683,7 +684,7 @@ A recruiting application (data sender) needs to find candidates. It processes CV
   "adhp": "0.3",
   "require": [
     {
-      "framework": "gdpr",
+      "frameworks": ["gdpr"],
       "min_preset": "standard",
       "extras": ["no_training", "cascading_information"],
       "accepted_jurisdictions": ["EU"],
@@ -702,7 +703,7 @@ A recruiting application (data sender) needs to find candidates. It processes CV
   "policies": [
     {
       "id": "recruiting-eu",
-      "framework": "gdpr",
+      "frameworks": ["gdpr"],
       "preset": "standard",
       "extras": ["no_training", "no_content_log", "cascading_information", "right_to_erasure"],
       "max_retention": "P6M",
@@ -717,7 +718,7 @@ All 6 checks pass:
 
 | Check | Requirement | Policy | Result |
 |-------|-------------|--------|--------|
-| 1. Framework | gdpr | gdpr | ✅ == |
+| 1. Frameworks | [gdpr] | [gdpr] | ✅ subset |
 | 2. Preset | standard | standard | ✅ standard >= standard |
 | 3. Extras | [no_training, cascading_information] | [no_training, no_content_log, cascading_information, right_to_erasure] + preset: [no_marketing, no_profiling] | ✅ subset |
 | 4. Jurisdiction | EU | DE | ✅ DE ∈ EU |
@@ -734,7 +735,7 @@ The recruiting agent (`standard`) is allowed to delegate (§6.2). It passes the 
   "policies": [
     {
       "id": "bgcheck-eu",
-      "framework": "gdpr",
+      "frameworks": ["gdpr"],
       "preset": "standard",
       "extras": ["no_training", "cascading_information"],
       "max_retention": "P90D",
@@ -760,7 +761,7 @@ Delegation allowed.
   "policies": [
     {
       "id": "idverif-global",
-      "framework": "gdpr",
+      "frameworks": ["gdpr"],
       "preset": "open",
       "extras": [],
       "jurisdiction": { "processing": ["US"], "storage": ["US"] },
@@ -781,10 +782,10 @@ Delegation blocked — no data is sent.
 {
   "compatible": false,
   "failures": [
-    { "framework": "gdpr", "check": "preset", "policy_value": "open", "requirement_value": "standard" },
-    { "framework": "gdpr", "check": "extras", "policy_value": [], "requirement_value": ["no_training", "cascading_information"] },
-    { "framework": "gdpr", "check": "jurisdiction", "policy_value": ["US"], "requirement_value": ["EU"] },
-    { "framework": "gdpr", "check": "preset_floor", "policy_value": "open", "delegating_preset": "standard" }
+    { "frameworks": ["gdpr"], "check": "preset", "policy_value": "open", "requirement_value": "standard" },
+    { "frameworks": ["gdpr"], "check": "extras", "policy_value": [], "requirement_value": ["no_training", "cascading_information"] },
+    { "frameworks": ["gdpr"], "check": "jurisdiction", "policy_value": ["US"], "requirement_value": ["EU"] },
+    { "frameworks": ["gdpr"], "check": "preset_floor", "policy_value": "open", "delegating_preset": "standard" }
   ]
 }
 ```
@@ -830,7 +831,7 @@ ADHP integrates with MCP via the `capabilities` object during the `initialize` h
       "adhp": "0.3",
       "policies": [
         {
-          "framework": "gdpr",
+          "frameworks": ["gdpr"],
           "preset": "standard",
           "extras": ["no_training"],
           "max_retention": "P2Y",
@@ -858,7 +859,7 @@ ADHP enriches A2A Agent Cards via an extension field. Agent Cards are published 
       "policies": [
         {
           "id": "finance-eu",
-          "framework": "gdpr",
+          "frameworks": ["gdpr"],
           "preset": "strict",
           "extras": ["no_log", "tee_execution"],
           "jurisdiction": { "processing": ["DE"], "storage": ["DE"] }
@@ -941,7 +942,7 @@ v0.3 is not backward-compatible with v0.2. Key changes:
 | 6 boolean opt-out fields | `extras[]` enum array |
 | `delegation_policy` enum | `no_delegation` extra |
 | `execution_environment` enum | `tee_execution` extra |
-| Flat `compliance[]` array | `framework` field per policy object |
+| Flat `compliance[]` array | `frameworks` array per policy object |
 | `pii_categories` array | `accepted_data` with data categories |
 | `third_party_sharing` object (6 sub-fields) | `no_third_party` extra (detail in optional annex) |
 | `certification` field | Out of core (verification is orthogonal) |
