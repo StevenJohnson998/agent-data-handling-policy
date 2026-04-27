@@ -213,17 +213,17 @@ ADHP is **framework-aware** — each policy declares which regulatory framework 
 
 *"But what if an agent lies about its policy?"*
 
-ADHP starts with protocol definition and progressively builds toward verifiable guarantees:
+ADHP is a language, not an enforcement mechanism. Verification is performed by external parties — ADHP only provides **fields to declare verification status**. Each phase adds metadata that raises the cost of lying:
 
-| Phase | What | Trust Level |
+| Phase | What | ADHP's role |
 |:-----:|------|:-----------:|
-| **0** | **Protocol Definition** — Define the language, schema, matching algorithm | N/A — spec stage |
-| 1 | **Self-Declaration** — Agents declare their practices in ADHP | Reputation-based |
-| 2 | **Verified Badge** — Operator KYC + technical audit | Audit-backed |
-| 3 | **Automated Auditing** — Auditor agents test with canary data | Test-proven |
-| 4 | **Cryptographic Proof** — TEE attestation, signed code, ZK proofs | Mathematically proven |
+| **0** | **Protocol Definition** — Define the language, schema, matching algorithm | The spec itself |
+| 1 | **Self-Declaration** — Agents declare their practices | Policy fields (current) |
+| 2 | **Third-Party Audit** — External auditors verify practices | Fields: `audited_by`, `audit_date`, `audit_url` |
+| 3 | **Automated Testing** — Auditor agents test with canary data | Fields: `last_tested`, `test_result`, `tester_id` |
+| 4 | **Cryptographic Attestation** — TEE, signed code, ZK proofs | Fields: `attestation`, `signature`, `tee_report_url` |
 
-**We are here: Phase 0.** The specification is being defined and reviewed. Each subsequent phase raises the cost of lying — from transparent declarations to mathematically provable guarantees.
+**We are here: Phase 0.** ADHP is designed as a foundation layer that enables verification and enforcement systems to be built on top. Each phase adds metadata fields to record that verification happened, who did it, and how to check.
 
 ---
 

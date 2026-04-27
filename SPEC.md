@@ -81,6 +81,8 @@ v0.2 had 27 fields. v0.3 has 2 always-required fields per policy (`framework`, `
 
 ADHP profiles are self-declarations. Like CC license badges, declarations have value without verification: they make practices explicit, comparable, and filterable. By keeping verification out of the core spec, ADHP can serve as a foundation for diverse verification and enforcement methods (registries, auditor agents, cryptographic proofs, contractual frameworks) without creating a dependency on any single approach.
 
+Future spec versions will add optional metadata fields to record that external verification occurred (e.g., auditor identity, attestation signatures, test results). ADHP is designed as a foundation layer that enables verification and enforcement systems to be built on top — it provides the standard vocabulary and structure they need to operate.
+
 ---
 
 ## 3. Terminology
@@ -271,7 +273,7 @@ Each row is self-contained: use restrictions are listed explicitly per preset, n
 
 **Delegation model:** For presets that allow delegation (`open`, `standard`), delegation is governed by [§11](#11-delegation): requirements travel through the chain and each downstream handler must satisfy them via `match()`. Presets that prohibit delegation (`strict`, `zero_trace`) are equivalent to declaring the `no_delegation` extra.
 
-> **Planned (v0.4):** Distinguish between _autonomous delegation_ (ADHP-only verification, no prior relationship) and _DPA delegation_ (covered by an explicit Data Processing Agreement between parties). v0.4 will also introduce sub-processor declarations, allowing handlers to identify their downstream partners. See also: planned `case` retention value (data retained until task completion) for purpose-bound processing.
+> **Planned (v0.4):** Distinguish between _autonomous delegation_ (ADHP-only verification, no prior relationship) and _DPA delegation_ (covered by an explicit Data Processing Agreement between parties). v0.4 will also introduce sub-processor declarations, allowing handlers to identify their downstream partners, and an optional `legal_ref` field linking to the handler's DPA/Terms — enabling sender-side agents to verify consistency between ADHP declarations and legal documents. See also: planned `case` retention value (data retained until task completion) for purpose-bound processing.
 
 ### 6.3 Per-Framework Semantics
 
