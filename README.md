@@ -1,14 +1,14 @@
 # Agent Data Handling Policy (ADHP)
 
-[![ADHP Validator](https://github.com/StevenJohnson998/agent-data-handling-policy/actions/workflows/validate.yml/badge.svg)](https://github.com/StevenJohnson998/agent-data-handling-policy/actions/workflows/validate.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/spec-v0.2.0-green.svg)](SPEC.md)
+[![Version](https://img.shields.io/badge/spec-v0.3.0-green.svg)](SPEC.md)
+[![JSON Schema](https://img.shields.io/badge/schema-v0.3-orange.svg)](schemas/adhp-v0.3.schema.json)
 
 ### AI agents are about to handle your most sensitive data. There's no standard way to know what they do with it.
 
 ---
 
-**📑 Contents:** [The Problem](#the-problem) · [The Solution](#the-solution) · [Five Levels](#five-levels-of-data-handling) · [See It in Action](#see-it-in-action) · [How It Works](#how-it-works) · [Trust Roadmap](#beyond-declarations--the-trust-roadmap) · [Regulatory Landscape](#regulatory-landscape) · [For Developers](#for-developers) · [Status & Roadmap](#project-status) · [Join the Conversation](#join-the-conversation)
+**Contents:** [The Problem](#the-problem) · [The Solution](#the-solution) · [Four Presets](#four-presets) · [How It Works](#how-it-works) · [See It in Action](#see-it-in-action) · [For Developers](#for-developers) · [Regulatory Landscape](#regulatory-landscape) · [Trust Roadmap](#beyond-declarations--the-trust-roadmap) · [Status](#project-status) · [Join the Conversation](#join-the-conversation)
 
 ---
 
@@ -33,94 +33,179 @@ This isn't hypothetical. [MCP](https://modelcontextprotocol.io) (Anthropic) has 
 
 ## The Solution
 
-ADHP is an open specification — a **machine-readable privacy passport for AI agents**.
+ADHP is an open specification — a **machine-readable privacy language for AI agents**.
 
-Systems read it at runtime and decide whether or not to allow the agent to access your data. No valid passport? No entry.
+Two sides, one vocabulary:
+- **Data handlers** declare what they do with data (policies).
+- **Data senders** declare what they require (requirements).
+
+A deterministic matching algorithm checks compatibility **before** any data is exchanged.
 
 ```mermaid
 flowchart LR
-    User -->|Request| Gateway
-    Gateway -->|Check ADHP| Decision{Compliant?}
-    Decision -->|Yes ✅| Agent[Agent processes data]
-    Decision -->|No ❌| Block[Blocked — no data sent]
-    Agent ~~~ S[ ]
-    style S fill:none,stroke:none
+    Sender -->|Requirements| Match{match}
+    Handler -->|Policies| Match
+    Match --> Pass[✅ Compatible]
+    Match --> Fail[❌ Incompatible]
 ```
 
-> The key: the compliance check happens **before** any data reaches the agent.
-
 ---
 
-## Five Levels of Data Handling
+## Four Presets
 
-| | Level | Name | What It Means |
-|:-:|:-----:|------|--------------|
-| 🔴 | 0 | **Open** | No promises. Data may be used for anything, stored forever, shared freely. |
-| 🟠 | 1 | **Standard** | No training on your data. Defined retention period. Metadata logging only. |
-| 🟡 | 2 | **Sensitive** | Short retention. PII protected. Outputs scrubbed of source data. |
-| 🟢 | 3 | **Strict** | No logging, no third-party sharing. Tight delegation controls. |
-| 🔵 | 4 | **Zero-Trace** | Memory-only processing. No disk. No logs. No delegation. Data vanishes after processing. |
+Presets are named baselines — like Creative Commons licenses for data handling.
 
-> Full level definitions, all properties, and edge cases → [SPEC.md](SPEC.md)
+| Preset | Retention | Sharing | Key Guarantees |
+|--------|-----------|---------|----------------|
+| **`open`** | Legal maximum | Allowed | No restrictions beyond law. |
+| **`standard`** | Explicit (required) | Allowed | No marketing, no profiling. `max_retention` mandatory. |
+| **`strict`** | Session only | Prohibited | + No training, no research, no content logging. No delegation. |
+| **`zero_trace`** | None | Prohibited | Nothing persists. No logs beyond legal floor. No delegation. |
 
----
+Each preset level satisfies all lower requirements: a `strict` handler always matches a `standard` requirement.
 
-## See It in Action
-
-> ### 🎮 [Try the Interactive Playground →](https://iamagique.dev/adhp-demo/playground)
-> Configure client requirements and server declarations, then watch ADHP compliance checking happen in real time.
->
-> ### 🔌 [Explore the Live MCP Demo →](https://iamagique.dev/adhp-demo/mcp)
-> A real MCP server declaring its ADHP policy — inspect what a privacy-aware agent looks like in practice.
-
-<!-- TODO: Add screenshot of playground once mobile-friendly version is deployed -->
+**Extras** add constraints on top of any preset: `no_training`, `no_log`, `no_third_party`, `tee_execution`, `right_to_erasure`, and more. [Full list in the spec →](SPEC.md#71-enum)
 
 ---
 
 ## How It Works
 
-ADHP plugs into two protocols that are shaping the agent ecosystem:
+### Bidirectional matching
 
-| Protocol | By | Purpose |
-|----------|----|---------|
-| **[MCP](https://modelcontextprotocol.io)** | Anthropic | Connects AI agents to tools and data sources |
-| **[A2A](https://google.github.io/A2A)** | Google | Connects agents to other agents |
-
-ADHP extends both with **data handling transparency**.
-
-When two systems connect, they exchange capabilities in a "handshake." ADHP adds data handling declarations to this handshake — so the client knows *before sending any data* what the server will do with it.
-
-```mermaid
-sequenceDiagram
-    participant C as Client / Gateway
-    participant S as Agent / MCP Server
-
-    C->>S: Connection request
-    S-->>C: Capabilities + ADHP policy (level, retention, jurisdiction...)
-    C->>C: Check policy against requirements
-    alt Policy meets requirements
-        C->>S: ✅ Send data for processing
-        S-->>C: Return results
-    else Policy insufficient
-        C--xS: ❌ Connection refused — no data sent
-    end
+```json
+// Data handler declares:
+{
+  "adhp": "0.3",
+  "policies": [{
+    "framework": "gdpr",
+    "preset": "standard",
+    "extras": ["no_training"],
+    "max_retention": "P6M",
+    "jurisdiction": { "processing": ["DE"], "storage": ["DE"] }
+  }]
+}
 ```
+
+```json
+// Data sender requires:
+{
+  "adhp": "0.3",
+  "require": [{
+    "framework": "gdpr",
+    "min_preset": "standard",
+    "extras": ["no_training"],
+    "accepted_jurisdictions": ["EU"],
+    "max_retention": "P1Y"
+  }]
+}
+```
+
+The matching algorithm runs **six checks**: framework, preset level, extras, jurisdiction, data categories, and retention. All pass → compatible. Any fails → incompatible.
+
+### Protocol integration
+
+ADHP plugs into the agent ecosystem's connection layer:
+
+| Protocol | Integration |
+|----------|-------------|
+| **[MCP](https://modelcontextprotocol.io)** (Anthropic) | Policy in the `capabilities` handshake. Client evaluates locally before sending data. |
+| **[A2A](https://google.github.io/A2A)** (Google) | Policy in Agent Card `extensions`. Registries pre-filter by requirements. |
 
 ### Delegation cascading
 
-When agents delegate to other agents, privacy requirements are enforced at every step. The level can stay the same or go up — never down.
+When agents delegate to other agents, requirements travel through the chain. Each downstream handler must pass `match()` — requirements can only tighten, never loosen.
 
 ```mermaid
 flowchart LR
-    U[User requires Level 3+] --> A[Agent A — Level 3 ✅]
-    A --> B[Agent B — Level 3 ✅]
-    B --> C[Agent C — Level 4 ✅]
-    C -.->|Blocked| D[Agent D — Level 1 ❌]
-    D ~~~ S[ ]
+    U[Sender: min standard, EU only] --> A[Handler A — standard, DE ✅]
+    A -->|passes requirements| B[Handler B — standard, FR ✅]
+    B -.->|blocked| C[Handler C — open, US ❌]
+    C ~~~ S[ ]
     style S fill:none,stroke:none
 ```
 
-> Technical deep dive: [SPEC.md](SPEC.md) · [Architecture discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6)
+> `strict` and `zero_trace` presets prohibit delegation entirely — data stays with the handler.
+
+---
+
+## See It in Action
+
+> ### [Try the Interactive Playground →](https://iamagique.dev/adhp-demo/playground)
+> Configure sender requirements and handler policies, then watch ADHP matching happen in real time.
+
+---
+
+## For Developers
+
+### Install the validator
+
+```bash
+pip install jsonschema
+```
+
+Then validate any ADHP document against the schema:
+
+```bash
+jsonschema -i my-policy.json schemas/adhp-v0.3.schema.json
+```
+
+Schema: [`schemas/adhp-v0.3.schema.json`](schemas/adhp-v0.3.schema.json) (JSON Schema draft 2020-12)
+
+### Quick start
+
+The simplest valid policy:
+
+```json
+{ "adhp": "0.3", "policies": [{ "framework": "gdpr", "preset": "open" }] }
+```
+
+A responsible baseline (most common):
+
+```json
+{
+  "adhp": "0.3",
+  "policies": [{
+    "framework": "gdpr",
+    "preset": "standard",
+    "extras": ["no_training"],
+    "max_retention": "P1Y",
+    "jurisdiction": { "processing": ["EU"], "storage": ["EU"] }
+  }]
+}
+```
+
+### Python SDK (v0.3 coming soon)
+
+```python
+from adhp import match
+
+result = match(handler_policy, sender_requirements)
+if result.compatible:
+    # Route to matched policy flow
+    print(f"Matched: {result.matched_policies}")
+else:
+    # Inspect failures
+    for f in result.failures:
+        print(f"  ✗ {f.check}: {f.message}")
+```
+
+> Full specification: [SPEC.md](SPEC.md) · Examples: [examples/](examples/)
+
+---
+
+## Regulatory Landscape
+
+ADHP is **framework-aware** — each policy declares which regulatory framework it supports. The matching algorithm ensures framework-specific requirements are met.
+
+| Framework | What It Requires | How ADHP Helps |
+|-----------|-----------------|---------------|
+| **GDPR** (EU) | Controller accountability for every sub-processor (Art. 28) | Machine-readable declarations across full delegation chains |
+| **UK GDPR** | Same obligations, UK-specific context | Separate framework ID enables distinct preset semantics |
+| **EU AI Act** | Transparency obligations for AI systems (Art. 50) | Standardized, inspectable data handling format |
+| **CCPA** (US) | Consumer right to know about data sharing | Sharing practices declared and verifiable at match time |
+| **HIPAA** (US) | Business Associate Agreements for health data | Health data handling declarations with sector-specific preset semantics |
+
+> ADHP does not replace legal compliance. It provides a common vocabulary and grammar for systems to communicate about regulations — not a substitute for DPAs, DPIAs, or legal agreements.
 
 ---
 
@@ -128,111 +213,32 @@ flowchart LR
 
 *"But what if an agent lies about its policy?"*
 
-Fair question. ADHP starts with self-declaration and progressively builds toward cryptographic guarantees — similar to how blockchain moved from "trust me" to "verify on-chain":
+ADHP starts with protocol definition and progressively builds toward verifiable guarantees:
 
 | Phase | What | Trust Level |
 |:-----:|------|:-----------:|
-| 📝 | **Self-Declaration** — Agents declare their practices | Reputation-based |
-| ✅ | **Verified Badge** — KYC for operators + technical audit | Audit-backed |
-| 🤖 | **Automated Auditing** — Auditor agents test with canary data | Test-proven |
-| 🔐 | **Cryptographic Proof** — TEE attestation, signed code, ZK proofs | Mathematically proven |
+| **0** | **Protocol Definition** — Define the language, schema, matching algorithm | N/A — spec stage |
+| 1 | **Self-Declaration** — Agents declare their practices in ADHP | Reputation-based |
+| 2 | **Verified Badge** — Operator KYC + technical audit | Audit-backed |
+| 3 | **Automated Auditing** — Auditor agents test with canary data | Test-proven |
+| 4 | **Cryptographic Proof** — TEE attestation, signed code, ZK proofs | Mathematically proven |
 
-Each phase raises the cost of lying. Today, ADHP makes data handling transparent. Tomorrow, it makes violations detectable and provable.
-
-> Deep dive: [Enforcement patterns](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5) · [DPA verification](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/9)
-
----
-
-## Regulatory Landscape
-
-ADHP is **regulation-agnostic** — it provides the technical transparency layer that multiple regulatory frameworks require but none currently have tooling for:
-
-| Regulation | What It Requires | How ADHP Helps |
-|-----------|-----------------|---------------|
-| **GDPR** (EU) | Controller accountability for every sub-processor ([Art. 28](https://gdpr-info.eu/art-28-gdpr/)) | Machine-readable data handling declarations across the full agent chain |
-| **EU AI Act** | Transparency obligations for AI systems ([Art. 50](https://artificialintelligenceact.eu/article/50/)) | Agents declare practices in a standardized, inspectable format |
-| **HIPAA** (US) | Business Associate Agreements for health data | Agents declare health PII handling, filterable at discovery |
-| **CCPA** (US) | Consumer right to know about data sharing | Third-party sharing practices declared and verifiable |
-
-> ⚠️ ADHP does not replace legal compliance. It is a **due diligence and transparency tool** that makes compliance demonstrable. The same agent can be compliant for one processing activity and non-compliant for another — ADHP makes this visible.
-
-<!-- TODO: Update discussion links once compliance category is created -->
-> Regulatory discussions: [Complex jurisdiction issue](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8) · [EU AI Act & the autonomous agent compliance problem](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/4)
-
----
-
-## For Developers
-
-### Python SDK (coming soon to PyPI)
-
-<!-- TODO: Update this section once SDK is published — replace "coming soon" with pip install adhp -->
-
-Server-side — declare your agent's ADHP policy in 3 lines:
-
-```python
-from adhp import ADHPServer
-
-server = ADHPServer(
-    name="FinanceAnalyzer Pro",
-    config="adhp-config.json"  # your ADHP policy
-)
-
-@server.tool()
-def analyze(data: str) -> str:
-    return "analysis result"
-
-server.run()
-```
-
-Client-side — check any server's compliance before sending data:
-
-```python
-from adhp import ADHPClient
-
-client = ADHPClient(requirements={"min_level": "strict", "require_compliance": ["GDPR"]})
-result = client.check("http://localhost:8000/mcp")
-
-if not result.compliant:
-    for check in result.checks:
-        if not check.passed:
-            print(f"  ✗ {check.name}: {check.reason}")
-```
-
-CLI:
-```bash
-adhp check http://localhost:8000/mcp --min-level strict --require-compliance GDPR
-adhp validate adhp-config.json
-adhp init --level standard --compliance GDPR --jurisdiction DE
-```
-
-> Full SDK documentation: [docs/sdk-guide.md](docs/sdk-guide.md) · Examples: [examples/](examples/)
-
----
-
-## Related Projects
-
-| Project | What | Link |
-|---------|------|------|
-| **AgentLedger** | Trust-based discovery for AI agents — find the right agent, verified. Uses ADHP natively. | [GitHub](https://github.com/StevenJohnson998/AgentLedger) |
-| **MCP** | Protocol for AI agent ↔ tool communication (Anthropic) | [modelcontextprotocol.io](https://modelcontextprotocol.io) |
-| **A2A** | Protocol for agent ↔ agent communication (Google) | [google.github.io/A2A](https://google.github.io/A2A) |
+**We are here: Phase 0.** The specification is being defined and reviewed. Each subsequent phase raises the cost of lying — from transparent declarations to mathematically provable guarantees.
 
 ---
 
 ## Project Status
 
-**Version:** 0.2.0 (Draft) · **License:** [Apache 2.0](LICENSE)
-
-This is a draft specification seeking community feedback. Not yet an official standard.
+**Version:** 0.3.0 (Draft) · **License:** [Apache 2.0](LICENSE)
 
 | Status | Milestone |
 |:------:|-----------|
-| ✅ | Spec v0.2.0 — 5 levels, delegation cascading, jurisdiction, third-party sharing |
+| ✅ | Spec v0.2 — 5 levels, delegation cascading |
 | ✅ | Interactive playground & live MCP demo |
-| ✅ | Python SDK with compliance checker and CLI |
-| 🔜 | v0.3 — Jurisdiction modeling (guaranteed vs. possible) + compliance field overhaul |
-| 🔜 | v0.4 — Cryptographic DPA verification + signed code attestation |
-| 🎯 | Propose as MCP Extension (SEP process) |
+| ✅ | **Spec v0.3** — Framework-based presets, bidirectional matching, extras, JSON Schema |
+| 🔜 | Python SDK update for v0.3 |
+| 🔜 | v0.4 — Autonomous vs DPA delegation, sub-processor declarations, `case` retention |
+| 🎯 | Propose as MCP extension |
 
 ---
 
@@ -240,20 +246,9 @@ This is a draft specification seeking community feedback. Not yet an official st
 
 We're building this in the open. Feedback welcome from developers, DPOs, privacy engineers, legal practitioners, and anyone who cares about data privacy in an AI-powered world.
 
-**🔧 Technical:**
 - [Architecture — where ADHP sits in the stack](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/6)
 - [Enforcement patterns — from self-declaration to cryptographic proof](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/5)
-
-**⚖️ Compliance & Regulation:**
-- [Complex jurisdiction issue](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8)
-- [Cryptographic DPA verification for agent chains](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/9)
+- [Complex jurisdiction modeling](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/8)
 - [EU AI Act & the autonomous agent compliance problem](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions/4)
 
-**Good first issues:**
-
-- **Add end-to-end tutorials for common use cases** — We have example configs in `examples/configs/` (healthcare, finance, etc.) but no guided tutorials showing a full workflow. It would help to have 3-4 walkthroughs covering a realistic scenario from config to server setup to client-side compliance check.
-- **Add more compliance frameworks to the spec** — Currently the spec covers GDPR, HIPAA, CCPA, and AI Act EU. Several major regulations are missing — PIPL (China), APPI (Japan), LGPD (Brazil), POPIA (South Africa), among others. Each entry should describe what the regulation requires and which ADHP fields are affected (retention, jurisdiction, pii_categories, etc.).
-- **Improve CLI output formatting** — The output of `adhp check` is functional but pretty bare. Adding colors, tables, and a summary would make it much easier to read. The CLI uses Click — `rich` could be a good fit here as an optional dependency.
-- **Add badge generator for ADHP level** — A CLI command like `adhp badge --level strict --format markdown` that outputs a ready-to-paste shields.io badge snippet for READMEs. Something like `![ADHP Level: Strict](https://img.shields.io/badge/ADHP-Strict-green)`.
-
-Open a [Discussion](../../discussions) for ideas, an [Issue](../../issues) for bugs, or submit a PR (open an issue first).
+Open a [Discussion](https://github.com/StevenJohnson998/agent-data-handling-policy/discussions) for ideas, an [Issue](https://github.com/StevenJohnson998/agent-data-handling-policy/issues) for bugs, or submit a PR.

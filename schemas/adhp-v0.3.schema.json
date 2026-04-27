@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/StevenJohnson998/agent-data-handling-policy/schemas/adhp-v0.3.schema.json",
+  "title": "ADHP v0.3",
+  "description": "Agent Data Handling Policy (ADHP) v0.3 — machine-readable data handling declarations for AI agents and software systems.",
+
+  "type": "object",
+  "required": ["adhp"],
+  "properties": {
+    "adhp": {
+      "type": "string",
+      "const": "0.3",
+      "description": "Spec version this document conforms to."
+    },
+    "policies": {
+      "$ref": "#/$defs/policiesArray"
+    },
+    "require": {
+      "$ref": "#/$defs/requirementsArray"
+    }
+  },
+  "oneOf": [
+    { "required": ["adhp", "policies"] },
+    { "required": ["adhp", "require"] }
+  ],
+  "additionalProperties": false,
+
+  "$defs": {
+    "policiesArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/policyEntry" },
+      "description": "Per-framework policy declarations."
+    },
+
+    "requirementsArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/requirementEntry" },
+      "description": "Per-framework requirement declarations."
+    },
+
+    "preset": {
+      "type": "string",
+      "enum": ["open", "standard", "strict", "zero_trace"],
+      "description": "Protection level, ordered: open < standard < strict < zero_trace."
+    },
+
+    "framework": {
+      "type": "string",
+      "enum": ["gdpr", "uk_gdpr", "ccpa", "ai_act", "lgpd", "popia", "pipeda", "hipaa"],
+      "description": "Regulatory framework identifier."
+    },
+
+    "extra": {
+      "type": "string",
+      "enum": [
+        "no_training",
+        "no_content_log",
+        "no_log",
+        "no_marketing",
+        "no_research",
+        "no_profiling",
+        "no_third_party",
+        "no_delegation",
+        "tee_execution",
+        "encryption_at_rest",
+        "right_to_erasure",
+        "right_to_access",
+        "cascading_information"
+      ],
+      "description": "Additional constraint that strengthens a preset."
+    },
+
+    "retention": {
+      "type": "string",
+      "description": "Retention duration: named value (none, session, legal_max) or ISO 8601 duration (e.g., P7D, P6M, P2Y, PT4H).",
+      "pattern": "^(none|session|legal_max|P(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(\\d+H)?(\\d+M)?(\\d+S)?)?)$"
+    },
+
+    "jurisdictionCode": {
+      "type": "string",
+      "description": "ISO 3166-1 alpha-2 country code or region code (EU, EEA, UK).",
+      "pattern": "^([A-Z]{2}|EU|EEA)$"
+    },
+
+    "jurisdictionArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/jurisdictionCode" },
+      "minItems": 1
+    },
+
+    "jurisdiction": {
+      "type": "object",
+      "description": "Where data is processed/stored, per operation type.",
+      "properties": {
+        "processing": { "$ref": "#/$defs/jurisdictionArray" },
+        "storage": { "$ref": "#/$defs/jurisdictionArray" },
+        "logging": { "$ref": "#/$defs/jurisdictionArray" },
+        "transfer": { "$ref": "#/$defs/jurisdictionArray" }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+
+    "dataCategory": {
+      "type": "string",
+      "description": "Data category: general, personal, sensitive, financial, regulated, or minor:<geo>.",
+      "pattern": "^(general|personal|sensitive|financial|regulated|minor:[A-Z]{2}|minor:EU|minor:EEA|minor:local|minor:all)$"
+    },
+
+    "policyEntry": {
+      "type": "object",
+      "required": ["framework", "preset"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this policy entry."
+        },
+        "framework": { "$ref": "#/$defs/framework" },
+        "preset": { "$ref": "#/$defs/preset" },
+        "extras": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/extra" },
+          "uniqueItems": true,
+          "description": "Additional constraints beyond the preset. Defaults to []."
+        },
+        "max_retention": {
+          "$ref": "#/$defs/retention",
+          "description": "Maximum retention duration. Required for standard preset."
+        },
+        "jurisdiction": { "$ref": "#/$defs/jurisdiction" },
+        "accepted_data": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dataCategory" },
+          "uniqueItems": true,
+          "description": "Data categories this handler accepts. Defaults to [\"general\"]."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "preset": { "const": "standard" } }
+          },
+          "then": {
+            "required": ["max_retention"],
+            "properties": {
+              "max_retention": {
+                "not": { "const": "legal_max" },
+                "description": "standard preset requires a concrete retention (ISO 8601, session, or none). legal_max is not allowed."
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "requirementEntry": {
+      "type": "object",
+      "required": ["framework", "min_preset"],
+      "properties": {
+        "framework": { "$ref": "#/$defs/framework" },
+        "min_preset": { "$ref": "#/$defs/preset" },
+        "extras": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/extra" },
+          "uniqueItems": true,
+          "description": "Required extras the handler must satisfy. Defaults to []."
+        },
+        "accepted_jurisdictions": {
+          "$ref": "#/$defs/jurisdictionArray",
+          "description": "Accepted country/region codes (applies to all operations)."
+        },
+        "accepted_jurisdictions_detail": {
+          "type": "object",
+          "description": "Per-operation jurisdiction restrictions. Mutually exclusive with accepted_jurisdictions.",
+          "properties": {
+            "processing": { "$ref": "#/$defs/jurisdictionArray" },
+            "storage": { "$ref": "#/$defs/jurisdictionArray" },
+            "logging": { "$ref": "#/$defs/jurisdictionArray" },
+            "transfer": { "$ref": "#/$defs/jurisdictionArray" }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        },
+        "max_retention": {
+          "$ref": "#/$defs/retention",
+          "description": "Maximum acceptable retention. Handler's effective retention must not exceed this."
+        },
+        "data_categories": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dataCategory" },
+          "uniqueItems": true,
+          "description": "Data types the sender will send. Defaults to [\"general\"]."
+        },
+        "policy_id": {
+          "type": "string",
+          "description": "Select a specific policy by id from the handler's offerings."
+        }
+      },
+      "additionalProperties": false,
+      "not": {
+        "required": ["accepted_jurisdictions", "accepted_jurisdictions_detail"]
+      }
+    }
+  }
+}
