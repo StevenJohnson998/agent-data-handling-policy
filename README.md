@@ -4,6 +4,8 @@
 [![Version](https://img.shields.io/badge/spec-v0.3.0-green.svg)](SPEC.md)
 [![JSON Schema](https://img.shields.io/badge/schema-v0.3-orange.svg)](schemas/adhp-v0.3.schema.json)
 
+🌐 **Language:** English · [Français](README_FR.md)
+
 ### AI agents are about to handle your most sensitive data. There's no standard way to know what they do with it.
 
 ---

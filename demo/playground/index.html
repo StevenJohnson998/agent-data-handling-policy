@@ -42,7 +42,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useCallback } = React;
+const { useState, useCallback, useContext, useEffect, createContext } = React;
 
 // ═══════════════════════════════════════════════════════════
 // ADHP v0.3 CONSTANTS
@@ -103,10 +103,181 @@ function parseRetention(val) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// I18N — UI STRINGS (technical tokens stay in English on purpose:
+// they are literal schema values / JSON keys, identical in both langs)
+// ═══════════════════════════════════════════════════════════
+
+const STRINGS = {
+  en: {
+    title: "v0.3 Protocol Playground",
+    subtitle: "Configure handler policies and sender requirements, then run the 6-check matching algorithm",
+    eyebrow: "Agent Data Handling Policy",
+    link_readme: "README",
+    link_spec: "Spec v0.3",
+    link_schema: "Schema",
+    link_discuss: "Discuss",
+    tab_a2a: "A2A Agent Card",
+    tab_mcp: "MCP Handshake",
+    banner_a2a_strong: "A2A:",
+    banner_a2a_pre: " The handler publishes its ADHP policy in the Agent Card ",
+    banner_a2a_post: ". The sender evaluates locally before initiating communication.",
+    banner_mcp_strong: "MCP:",
+    banner_mcp_pre: " The server returns its ADHP policy inside ",
+    banner_mcp_post: " during the initialize handshake. The client evaluates locally — requirements never leave the client.",
+    handler_label: "Data Handler",
+    handler_desc: "Declares data handling practices (policy).",
+    sender_label: "Data Sender",
+    sender_desc: "Declares data handling expectations (requirements).",
+    sec_frameworks: "Frameworks",
+    sec_preset: "Preset",
+    sec_min_preset: "Min Preset",
+    sec_max_retention: "Max Retention",
+    lbl_required: "(required)",
+    sec_extras: "Extras",
+    sec_req_extras: "Required Extras",
+    sec_juris_processing: "Jurisdiction (processing)",
+    sec_juris_storage: "Jurisdiction (storage)",
+    sec_accepted_data: "Accepted Data",
+    sec_accepted_juris: "Accepted Jurisdictions",
+    sec_data_categories: "Data Categories",
+    ph_retention_handler_standard: "e.g. P1Y, P6M, P30D",
+    ph_retention_sender: "e.g. P1Y, P6M, session (empty = legal_max)",
+    retention_required_note: "Required for standard (legal_max not allowed)",
+    json_sender_req: "Sender Requirements",
+    json_agent_card: "Agent Card + ADHP",
+    json_client_req: "Client Request",
+    json_server_resp: "Server Response + ADHP",
+    copy: "Copy",
+    copied: "Copied",
+    run_match: "Run match()",
+    result_ph_pre: "Configure handler policy & sender requirements, then click ",
+    result_ph_post: "",
+    compatible: "COMPATIBLE",
+    incompatible: "INCOMPATIBLE",
+    all_pass: "All 6 checks pass",
+    n_failed: (n) => `${n} check(s) failed`,
+    result_footer_pre: "ADHP matching is deterministic. See ",
+    result_footer_link: "spec §10.1",
+    result_footer_post: " for the full algorithm.",
+    footer_spec: "Specification",
+    footer_discuss: "Discussions",
+    ac_name: "Healthcare Concierge",
+    ac_desc: "Multi-provider healthcare agent",
+    ac_skill: "Provider Lookup",
+    mcp_server_name: "Demo Agent",
+    mcp_client_name: "ADHP Demo Client",
+  },
+  fr: {
+    title: "Démonstrateur du protocole v0.3",
+    subtitle: "Configurez la policy du gestionnaire et les exigences de l'émetteur, puis lancez l'algorithme de matching à 6 contrôles",
+    eyebrow: "Agent Data Handling Policy",
+    link_readme: "README (FR)",
+    link_spec: "Spec v0.3",
+    link_schema: "Schéma",
+    link_discuss: "Discussions",
+    tab_a2a: "A2A — Agent Card",
+    tab_mcp: "MCP — Handshake",
+    banner_a2a_strong: "A2A :",
+    banner_a2a_pre: " Le gestionnaire publie sa policy ADHP dans l'Agent Card ",
+    banner_a2a_post: ". L'émetteur l'évalue localement avant d'initier la communication.",
+    banner_mcp_strong: "MCP :",
+    banner_mcp_pre: " Le serveur renvoie sa policy ADHP dans ",
+    banner_mcp_post: " lors du handshake d'initialisation. Le client l'évalue localement — les exigences ne quittent jamais le client.",
+    handler_label: "Gestionnaire de données",
+    handler_desc: "Déclare ses pratiques de traitement des données (la policy).",
+    sender_label: "Émetteur de données",
+    sender_desc: "Déclare ses attentes en matière de traitement des données (les exigences).",
+    sec_frameworks: "Cadres réglementaires (frameworks)",
+    sec_preset: "Preset (profil)",
+    sec_min_preset: "Preset minimum",
+    sec_max_retention: "Rétention max.",
+    lbl_required: "(requis)",
+    sec_extras: "Extras (contraintes)",
+    sec_req_extras: "Extras requis",
+    sec_juris_processing: "Juridiction (traitement)",
+    sec_juris_storage: "Juridiction (stockage)",
+    sec_accepted_data: "Données acceptées",
+    sec_accepted_juris: "Juridictions acceptées",
+    sec_data_categories: "Catégories de données",
+    ph_retention_handler_standard: "ex. P1Y, P6M, P30D",
+    ph_retention_sender: "ex. P1Y, P6M, session (vide = legal_max)",
+    retention_required_note: "Requis pour standard (legal_max interdit)",
+    json_sender_req: "Exigences de l'émetteur",
+    json_agent_card: "Agent Card + ADHP",
+    json_client_req: "Requête du client",
+    json_server_resp: "Réponse du serveur + ADHP",
+    copy: "Copier",
+    copied: "Copié",
+    run_match: "Lancer match()",
+    result_ph_pre: "Configurez la policy du gestionnaire et les exigences de l'émetteur, puis cliquez sur ",
+    result_ph_post: "",
+    compatible: "COMPATIBLE",
+    incompatible: "INCOMPATIBLE",
+    all_pass: "Les 6 contrôles passent",
+    n_failed: (n) => `${n} contrôle(s) en échec`,
+    result_footer_pre: "Le matching ADHP est déterministe. Voir la ",
+    result_footer_link: "spec §10.1",
+    result_footer_post: " pour l'algorithme complet.",
+    footer_spec: "Spécification",
+    footer_discuss: "Discussions",
+    ac_name: "Conciergerie santé",
+    ac_desc: "Agent santé multi-prestataires",
+    ac_skill: "Recherche de prestataire",
+    mcp_server_name: "Agent de démo",
+    mcp_client_name: "Client de démo ADHP",
+  }
+};
+
+// Check-message builders. Tokens (preset names, framework ids, codes) stay verbatim;
+// only the surrounding wording is localized.
+const MSG = {
+  en: {
+    fw_ok: (req, pol) => `Frameworks: [${req}] ⊆ [${pol}]`,
+    fw_fail: (missing) => `Frameworks: policy missing [${missing}]`,
+    preset_ok: (p, pi, r, ri) => `Preset: ${p} (${pi}) >= ${r} (${ri})`,
+    preset_fail: (p, pi, r, ri) => `Preset: ${p} (${pi}) < ${r} (${ri})`,
+    extras_ok: (req) => `Extras: [${req}] all satisfied`,
+    extras_fail: (missing) => `Extras: missing [${missing}]`,
+    extras_none: () => "Extras: none required",
+    juris_nodecl: () => "Jurisdiction: handler declares no jurisdiction (fail-closed)",
+    juris_ok: (req) => `Jurisdiction: all declared locations within [${req}]`,
+    juris_fail: (details) => `Jurisdiction: ${details}`,
+    juris_detail: (op, outside) => `${op}: [${outside}] outside accepted`,
+    juris_none: () => "Jurisdiction: no restriction",
+    cats_ok: (req) => `Data categories: [${req}] all accepted`,
+    cats_fail: (missing) => `Data categories: handler does not accept [${missing}]`,
+    ret_ok: (p, r) => `Retention: ${p} <= ${r}`,
+    ret_fail: (p, r) => `Retention: ${p} exceeds max ${r}`,
+  },
+  fr: {
+    fw_ok: (req, pol) => `Frameworks : [${req}] ⊆ [${pol}]`,
+    fw_fail: (missing) => `Frameworks : la policy ne couvre pas [${missing}]`,
+    preset_ok: (p, pi, r, ri) => `Preset : ${p} (${pi}) >= ${r} (${ri})`,
+    preset_fail: (p, pi, r, ri) => `Preset : ${p} (${pi}) < ${r} (${ri})`,
+    extras_ok: (req) => `Extras : [${req}] tous satisfaits`,
+    extras_fail: (missing) => `Extras : manquant(s) [${missing}]`,
+    extras_none: () => "Extras : aucun requis",
+    juris_nodecl: () => "Juridiction : le gestionnaire n'en déclare aucune (refus par défaut)",
+    juris_ok: (req) => `Juridiction : toutes les localisations déclarées sont dans [${req}]`,
+    juris_fail: (details) => `Juridiction : ${details}`,
+    juris_detail: (op, outside) => `${op} : [${outside}] hors périmètre accepté`,
+    juris_none: () => "Juridiction : aucune restriction",
+    cats_ok: (req) => `Catégories de données : [${req}] toutes acceptées`,
+    cats_fail: (missing) => `Catégories de données : le gestionnaire n'accepte pas [${missing}]`,
+    ret_ok: (p, r) => `Rétention : ${p} <= ${r}`,
+    ret_fail: (p, r) => `Rétention : ${p} dépasse le max ${r}`,
+  }
+};
+
+const LangContext = createContext("en");
+function useT() { return STRINGS[useContext(LangContext)]; }
+
+// ═══════════════════════════════════════════════════════════
 // 6-CHECK MATCHING ALGORITHM
 // ═══════════════════════════════════════════════════════════
 
-function runMatch(policy, requirement) {
+function runMatch(policy, requirement, lang) {
+  const m = MSG[lang] || MSG.en;
   const checks = [];
 
   // Check 1: Frameworks (subset inclusion)
@@ -114,18 +285,18 @@ function runMatch(policy, requirement) {
   const policyFrameworks = new Set(policy.frameworks || []);
   const missingFw = reqFrameworks.filter(f => !policyFrameworks.has(f));
   if (missingFw.length === 0) {
-    checks.push({ pass: true, check: "frameworks", msg: `Frameworks: [${reqFrameworks.join(", ")}] ⊆ [${[...policyFrameworks].join(", ")}]` });
+    checks.push({ pass: true, check: "frameworks", msg: m.fw_ok(reqFrameworks.join(", "), [...policyFrameworks].join(", ")) });
   } else {
-    checks.push({ pass: false, check: "frameworks", msg: `Frameworks: policy missing [${missingFw.join(", ")}]` });
+    checks.push({ pass: false, check: "frameworks", msg: m.fw_fail(missingFw.join(", ")) });
   }
 
   // Check 2: Preset
   const pIdx = PRESET_ORDER[policy.preset];
   const rIdx = PRESET_ORDER[requirement.min_preset];
   if (pIdx >= rIdx) {
-    checks.push({ pass: true, check: "preset", msg: `Preset: ${policy.preset} (${pIdx}) >= ${requirement.min_preset} (${rIdx})` });
+    checks.push({ pass: true, check: "preset", msg: m.preset_ok(policy.preset, pIdx, requirement.min_preset, rIdx) });
   } else {
-    checks.push({ pass: false, check: "preset", msg: `Preset: ${policy.preset} (${pIdx}) < ${requirement.min_preset} (${rIdx})` });
+    checks.push({ pass: false, check: "preset", msg: m.preset_fail(policy.preset, pIdx, requirement.min_preset, rIdx) });
   }
 
   // Check 3: Extras
@@ -134,12 +305,12 @@ function runMatch(policy, requirement) {
     const policyExtras = new Set([...(policy.extras || []), ...PRESET_USE_RESTRICTIONS[policy.preset]]);
     const missing = reqExtras.filter(e => !policyExtras.has(e));
     if (missing.length === 0) {
-      checks.push({ pass: true, check: "extras", msg: `Extras: [${reqExtras.join(", ")}] all satisfied` });
+      checks.push({ pass: true, check: "extras", msg: m.extras_ok(reqExtras.join(", ")) });
     } else {
-      checks.push({ pass: false, check: "extras", msg: `Extras: missing [${missing.join(", ")}]` });
+      checks.push({ pass: false, check: "extras", msg: m.extras_fail(missing.join(", ")) });
     }
   } else {
-    checks.push({ pass: true, check: "extras", msg: "Extras: none required" });
+    checks.push({ pass: true, check: "extras", msg: m.extras_none() });
   }
 
   // Check 4: Jurisdiction
@@ -160,19 +331,19 @@ function runMatch(policy, requirement) {
       const outside = [...expandedDeclared].filter(c => !acceptedSet.has(c));
       if (outside.length > 0) {
         jurisPass = false;
-        jurisDetails.push(`${op}: [${outside.join(",")}] outside accepted`);
+        jurisDetails.push(m.juris_detail(op, outside.join(",")));
       }
     }
 
     if (!hasAnyDeclaration) {
-      checks.push({ pass: false, check: "jurisdiction", msg: "Jurisdiction: handler declares no jurisdiction (fail-closed)" });
+      checks.push({ pass: false, check: "jurisdiction", msg: m.juris_nodecl() });
     } else if (jurisPass) {
-      checks.push({ pass: true, check: "jurisdiction", msg: `Jurisdiction: all declared locations within [${reqJuris.join(", ")}]` });
+      checks.push({ pass: true, check: "jurisdiction", msg: m.juris_ok(reqJuris.join(", ")) });
     } else {
-      checks.push({ pass: false, check: "jurisdiction", msg: `Jurisdiction: ${jurisDetails.join("; ")}` });
+      checks.push({ pass: false, check: "jurisdiction", msg: m.juris_fail(jurisDetails.join("; ")) });
     }
   } else {
-    checks.push({ pass: true, check: "jurisdiction", msg: "Jurisdiction: no restriction" });
+    checks.push({ pass: true, check: "jurisdiction", msg: m.juris_none() });
   }
 
   // Check 5: Data Categories
@@ -180,9 +351,9 @@ function runMatch(policy, requirement) {
   const policyCats = new Set([...(policy.accepted_data || ["general"]), "general"]);
   const missingCats = reqCats.filter(c => !policyCats.has(c));
   if (missingCats.length === 0) {
-    checks.push({ pass: true, check: "data_categories", msg: `Data categories: [${reqCats.join(", ")}] all accepted` });
+    checks.push({ pass: true, check: "data_categories", msg: m.cats_ok(reqCats.join(", ")) });
   } else {
-    checks.push({ pass: false, check: "data_categories", msg: `Data categories: handler does not accept [${missingCats.join(", ")}]` });
+    checks.push({ pass: false, check: "data_categories", msg: m.cats_fail(missingCats.join(", ")) });
   }
 
   // Check 6: Retention
@@ -196,9 +367,9 @@ function runMatch(policy, requirement) {
   const pRetVal = parseRetention(policyRet);
   const rRetVal = parseRetention(reqMaxRet);
   if (pRetVal <= rRetVal) {
-    checks.push({ pass: true, check: "retention", msg: `Retention: ${policyRet} <= ${reqMaxRet}` });
+    checks.push({ pass: true, check: "retention", msg: m.ret_ok(policyRet, reqMaxRet) });
   } else {
-    checks.push({ pass: false, check: "retention", msg: `Retention: ${policyRet} exceeds max ${reqMaxRet}` });
+    checks.push({ pass: false, check: "retention", msg: m.ret_fail(policyRet, reqMaxRet) });
   }
 
   return { pass: checks.every(c => c.pass), checks };
@@ -248,13 +419,14 @@ const LinkPill = ({ href, children }) => (
 );
 
 function CopyButton({ getText }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(getText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
   };
   return (
-    <button onClick={handleCopy} title="Copy JSON" style={s({ background: "transparent", border: "1px solid #444", borderRadius: "3px", padding: "2px 6px", fontSize: "10px", color: copied ? "#22c55e" : "#777", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" })}>
-      {copied ? "Copied" : "Copy"}
+    <button onClick={handleCopy} title={t.copy} style={s({ background: "transparent", border: "1px solid #444", borderRadius: "3px", padding: "2px 6px", fontSize: "10px", color: copied ? "#22c55e" : "#777", cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" })}>
+      {copied ? t.copied : t.copy}
     </button>
   );
 }
@@ -356,40 +528,41 @@ function JsonNode({ value, depth, isLast, defaultOpen, keyName, highlightKeys, p
 // HANDLER (POLICY) PANEL
 // ═══════════════════════════════════════════════════════════
 
-function HandlerPanel({ state, setState, accentColor = "#f97316", label = "Data Handler" }) {
+function HandlerPanel({ state, setState, accentColor = "#f97316" }) {
+  const t = useT();
   const isStandard = state.preset === "standard";
   return (
     <div style={s({ background: "#111", border: `1px solid ${accentColor}33`, borderRadius: "8px", padding: "14px" })}>
       <div style={s({ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" })}>
         <div style={s({ width: "8px", height: "8px", borderRadius: "50%", background: accentColor })} />
-        <span style={s({ fontSize: "13px", fontWeight: 700, color: accentColor })}>{label}</span>
+        <span style={s({ fontSize: "13px", fontWeight: 700, color: accentColor })}>{t.handler_label}</span>
       </div>
       <div style={s({ fontSize: "10px", color: "#888", marginBottom: "10px", lineHeight: "1.4" })}>
-        Declares data handling practices (policy).
+        {t.handler_desc}
       </div>
 
-      <SectionLabel>Frameworks</SectionLabel>
+      <SectionLabel>{t.sec_frameworks}</SectionLabel>
       <ChipSelect options={FRAMEWORKS} selected={state.frameworks} onChange={f => toggleList(state.frameworks, v => setState(p => ({ ...p, frameworks: v })), f)} color={accentColor} />
 
-      <SectionLabel>Preset</SectionLabel>
+      <SectionLabel>{t.sec_preset}</SectionLabel>
       <div style={s({ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "6px" })}>
         {PRESETS.map(p => <button key={p} onClick={() => setState(prev => ({ ...prev, preset: p }))} style={s({ padding: "4px 8px", fontSize: "11px", textAlign: "left", fontFamily: "'JetBrains Mono',monospace", background: state.preset === p ? PRESET_COLORS[p] + "22" : "transparent", border: `1px solid ${state.preset === p ? PRESET_COLORS[p] : "#222"}`, color: state.preset === p ? PRESET_COLORS[p] : "#555", borderRadius: "3px", cursor: "pointer" })}>{p}</button>)}
       </div>
 
-      <SectionLabel>Max Retention {isStandard && <span style={{ color: "#ef4444" }}>(required)</span>}</SectionLabel>
-      <TextInput value={state.max_retention} onChange={v => setState(p => ({ ...p, max_retention: v }))} placeholder={isStandard ? "e.g. P1Y, P6M, P30D" : RETENTION_PRESETS[state.preset] || "legal_max"} />
-      {isStandard && !state.max_retention && <div style={s({ fontSize: "10px", color: "#ef4444", marginTop: "2px" })}>Required for standard (legal_max not allowed)</div>}
+      <SectionLabel>{t.sec_max_retention} {isStandard && <span style={{ color: "#ef4444" }}>{t.lbl_required}</span>}</SectionLabel>
+      <TextInput value={state.max_retention} onChange={v => setState(p => ({ ...p, max_retention: v }))} placeholder={isStandard ? t.ph_retention_handler_standard : RETENTION_PRESETS[state.preset] || "legal_max"} />
+      {isStandard && !state.max_retention && <div style={s({ fontSize: "10px", color: "#ef4444", marginTop: "2px" })}>{t.retention_required_note}</div>}
 
-      <SectionLabel>Extras</SectionLabel>
+      <SectionLabel>{t.sec_extras}</SectionLabel>
       <ChipSelect options={EXTRAS} selected={state.extras} onChange={e => toggleList(state.extras, v => setState(p => ({ ...p, extras: v })), e)} color={accentColor} />
 
-      <SectionLabel>Jurisdiction (processing)</SectionLabel>
+      <SectionLabel>{t.sec_juris_processing}</SectionLabel>
       <ChipSelect options={JURISDICTIONS} selected={state.juris_processing} onChange={j => toggleList(state.juris_processing, v => setState(p => ({ ...p, juris_processing: v })), j)} color={accentColor} />
 
-      <SectionLabel>Jurisdiction (storage)</SectionLabel>
+      <SectionLabel>{t.sec_juris_storage}</SectionLabel>
       <ChipSelect options={JURISDICTIONS} selected={state.juris_storage} onChange={j => toggleList(state.juris_storage, v => setState(p => ({ ...p, juris_storage: v })), j)} color={accentColor} />
 
-      <SectionLabel>Accepted Data</SectionLabel>
+      <SectionLabel>{t.sec_accepted_data}</SectionLabel>
       <ChipSelect options={DATA_CATEGORIES} selected={state.accepted_data} onChange={d => toggleList(state.accepted_data, v => setState(p => ({ ...p, accepted_data: v })), d)} color={accentColor} />
     </div>
   );
@@ -399,35 +572,36 @@ function HandlerPanel({ state, setState, accentColor = "#f97316", label = "Data 
 // SENDER (REQUIREMENTS) PANEL
 // ═══════════════════════════════════════════════════════════
 
-function SenderPanel({ state, setState, accentColor = "#3b82f6", label = "Data Sender" }) {
+function SenderPanel({ state, setState, accentColor = "#3b82f6" }) {
+  const t = useT();
   return (
     <div style={s({ background: "#111", border: `1px solid ${accentColor}33`, borderRadius: "8px", padding: "14px" })}>
       <div style={s({ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" })}>
         <div style={s({ width: "8px", height: "8px", borderRadius: "50%", background: accentColor })} />
-        <span style={s({ fontSize: "13px", fontWeight: 700, color: accentColor })}>{label}</span>
+        <span style={s({ fontSize: "13px", fontWeight: 700, color: accentColor })}>{t.sender_label}</span>
       </div>
       <div style={s({ fontSize: "10px", color: "#888", marginBottom: "10px", lineHeight: "1.4" })}>
-        Declares data handling expectations (requirements).
+        {t.sender_desc}
       </div>
 
-      <SectionLabel>Frameworks</SectionLabel>
+      <SectionLabel>{t.sec_frameworks}</SectionLabel>
       <ChipSelect options={FRAMEWORKS} selected={state.frameworks} onChange={f => toggleList(state.frameworks, v => setState(p => ({ ...p, frameworks: v })), f)} color={accentColor} />
 
-      <SectionLabel>Min Preset</SectionLabel>
+      <SectionLabel>{t.sec_min_preset}</SectionLabel>
       <div style={s({ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "6px" })}>
         {PRESETS.map(p => <button key={p} onClick={() => setState(prev => ({ ...prev, min_preset: p }))} style={s({ padding: "4px 8px", fontSize: "11px", textAlign: "left", fontFamily: "'JetBrains Mono',monospace", background: state.min_preset === p ? PRESET_COLORS[p] + "22" : "transparent", border: `1px solid ${state.min_preset === p ? PRESET_COLORS[p] : "#222"}`, color: state.min_preset === p ? PRESET_COLORS[p] : "#555", borderRadius: "3px", cursor: "pointer" })}>{p}</button>)}
       </div>
 
-      <SectionLabel>Max Retention</SectionLabel>
-      <TextInput value={state.max_retention} onChange={v => setState(p => ({ ...p, max_retention: v }))} placeholder="e.g. P1Y, P6M, session (empty = legal_max)" />
+      <SectionLabel>{t.sec_max_retention}</SectionLabel>
+      <TextInput value={state.max_retention} onChange={v => setState(p => ({ ...p, max_retention: v }))} placeholder={t.ph_retention_sender} />
 
-      <SectionLabel>Required Extras</SectionLabel>
+      <SectionLabel>{t.sec_req_extras}</SectionLabel>
       <ChipSelect options={EXTRAS} selected={state.extras} onChange={e => toggleList(state.extras, v => setState(p => ({ ...p, extras: v })), e)} color={accentColor} />
 
-      <SectionLabel>Accepted Jurisdictions</SectionLabel>
+      <SectionLabel>{t.sec_accepted_juris}</SectionLabel>
       <ChipSelect options={JURISDICTIONS} selected={state.accepted_jurisdictions} onChange={j => toggleList(state.accepted_jurisdictions, v => setState(p => ({ ...p, accepted_jurisdictions: v })), j)} color={accentColor} />
 
-      <SectionLabel>Data Categories</SectionLabel>
+      <SectionLabel>{t.sec_data_categories}</SectionLabel>
       <ChipSelect options={DATA_CATEGORIES} selected={state.data_categories} onChange={d => toggleList(state.data_categories, v => setState(p => ({ ...p, data_categories: v })), d)} color={accentColor} />
     </div>
   );
@@ -438,18 +612,19 @@ function SenderPanel({ state, setState, accentColor = "#3b82f6", label = "Data S
 // ═══════════════════════════════════════════════════════════
 
 function ResultPanel({ result, hasExecuted }) {
+  const t = useT();
   return (
     <div style={s({ background: "#111", border: `1px solid ${!hasExecuted ? "#222" : result?.pass ? "#166534" : "#7f1d1d"}`, borderRadius: "8px", padding: "14px", minHeight: "120px", transition: "border-color 0.3s" })}>
       {!hasExecuted ? (
         <div style={s({ color: "#444", fontSize: "12px", textAlign: "center", paddingTop: "30px" })}>
-          Configure handler policy & sender requirements, then click <strong style={s({ color: "#666" })}>Run match()</strong>
+          {t.result_ph_pre}<strong style={s({ color: "#666" })}>{t.run_match}</strong>{t.result_ph_post}
         </div>
       ) : (
         <div>
           <div style={s({ fontSize: "18px", marginBottom: "10px" })}>
             {result.pass
-              ? <span><span style={s({ color: "#22c55e", fontWeight: 700 })}>COMPATIBLE</span><span style={s({ color: "#666", fontSize: "12px", marginLeft: "8px" })}>All 6 checks pass</span></span>
-              : <span><span style={s({ color: "#ef4444", fontWeight: 700 })}>INCOMPATIBLE</span><span style={s({ color: "#666", fontSize: "12px", marginLeft: "8px" })}>{result.checks.filter(c => !c.pass).length} check(s) failed</span></span>
+              ? <span><span style={s({ color: "#22c55e", fontWeight: 700 })}>{t.compatible}</span><span style={s({ color: "#666", fontSize: "12px", marginLeft: "8px" })}>{t.all_pass}</span></span>
+              : <span><span style={s({ color: "#ef4444", fontWeight: 700 })}>{t.incompatible}</span><span style={s({ color: "#666", fontSize: "12px", marginLeft: "8px" })}>{t.n_failed(result.checks.filter(c => !c.pass).length)}</span></span>
             }
           </div>
           <div style={s({ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "10px" })}>
@@ -460,7 +635,7 @@ function ResultPanel({ result, hasExecuted }) {
             ))}
           </div>
           <div style={s({ fontSize: "10px", color: "#444", borderTop: "1px solid #1a1a1a", paddingTop: "8px" })}>
-            ADHP matching is deterministic. See <a href={REPO + "/blob/main/SPEC.md#101-six-checks"} target="_blank" rel="noopener noreferrer" style={s({ color: "#3b82f6", textDecoration: "none" })}>spec &sect;10.1</a> for the full algorithm.
+            {t.result_footer_pre}<a href={REPO + "/blob/main/SPEC.md#101-six-checks"} target="_blank" rel="noopener noreferrer" style={s({ color: "#3b82f6", textDecoration: "none" })}>{t.result_footer_link}</a>{t.result_footer_post}
           </div>
         </div>
       )}
@@ -506,7 +681,8 @@ function buildRequirement(r) {
 // A2A TAB
 // ═══════════════════════════════════════════════════════════
 
-function A2ADemo() {
+function A2ADemo({ lang }) {
+  const t = useT();
   const [sender, setSender] = useState(defaultSender());
   const [handler, setHandler] = useState(defaultHandler());
   const [result, setResult] = useState(null);
@@ -516,45 +692,45 @@ function A2ADemo() {
   const reqDoc = buildRequirement(sender);
 
   const agentCard = {
-    name: "Healthcare Concierge",
-    description: "Multi-provider healthcare agent",
+    name: t.ac_name,
+    description: t.ac_desc,
     version: "1.2.0",
     extensions: { adhp: policyDoc },
-    skills: [{ id: "provider-lookup", name: "Provider Lookup" }]
+    skills: [{ id: "provider-lookup", name: t.ac_skill }]
   };
 
   const executeCheck = useCallback(() => {
-    setResult(runMatch(policyDoc.policies[0], reqDoc.require[0]));
+    setResult(runMatch(policyDoc.policies[0], reqDoc.require[0], lang));
     setHasExecuted(true);
-  }, [sender, handler]);
+  }, [sender, handler, lang]);
 
   return (
     <div>
       <div style={s({ marginBottom: "12px", padding: "8px 12px", background: "#111", border: "1px solid #1e1e1e", borderLeft: "3px solid #8b5cf6", borderRadius: "6px", fontSize: "11px", color: "#777", lineHeight: "1.6" })}>
-        <strong style={{ color: "#999" }}>A2A:</strong> The handler publishes its ADHP policy in the Agent Card <code style={{ color: "#f97316", background: "#1a1200", padding: "1px 4px", borderRadius: "2px", fontSize: "10px" }}>extensions.adhp</code>. The sender evaluates locally before initiating communication.
+        <strong style={{ color: "#999" }}>{t.banner_a2a_strong}</strong>{t.banner_a2a_pre}<code style={{ color: "#f97316", background: "#1a1200", padding: "1px 4px", borderRadius: "2px", fontSize: "10px" }}>extensions.adhp</code>{t.banner_a2a_post}
       </div>
 
       <div className="pg-grid" style={s({ display: "grid", gridTemplateColumns: "240px 1fr 240px", gap: "12px" })}>
-        <SenderPanel state={sender} setState={setSender} label="Data Sender" />
+        <SenderPanel state={sender} setState={setSender} />
 
         <div style={s({ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 })}>
           <div className="pg-center-grid" style={s({ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" })}>
             <div style={s({ background: "#111", border: "1px solid #1e3a5f", borderRadius: "8px", padding: "12px", display: "flex", flexDirection: "column", minWidth: 0 })}>
-              <JsonView data={reqDoc} title="Sender Requirements" titleColor="#3b82f6" />
+              <JsonView data={reqDoc} title={t.json_sender_req} titleColor="#3b82f6" />
             </div>
             <div style={s({ background: "#111", border: "1px solid #2d1e0f", borderRadius: "8px", padding: "12px", display: "flex", flexDirection: "column", minWidth: 0 })}>
-              <JsonView data={agentCard} highlightKeys={new Set(["adhp"])} title="Agent Card + ADHP" titleColor="#f97316" />
+              <JsonView data={agentCard} highlightKeys={new Set(["adhp"])} title={t.json_agent_card} titleColor="#f97316" />
             </div>
           </div>
 
           <button onClick={executeCheck} style={s({ padding: "12px 24px", background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", color: "#fff", border: "none", borderRadius: "6px", fontSize: "14px", fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", cursor: "pointer", letterSpacing: "0.5px", boxShadow: "0 0 24px rgba(59,130,246,0.25)" })}>
-            Run match()
+            {t.run_match}
           </button>
 
           <ResultPanel result={result} hasExecuted={hasExecuted} />
         </div>
 
-        <HandlerPanel state={handler} setState={setHandler} label="Data Handler" />
+        <HandlerPanel state={handler} setState={setHandler} />
       </div>
     </div>
   );
@@ -564,7 +740,8 @@ function A2ADemo() {
 // MCP TAB
 // ═══════════════════════════════════════════════════════════
 
-function MCPDemo() {
+function MCPDemo({ lang }) {
+  const t = useT();
   const [sender, setSender] = useState(defaultSender());
   const [handler, setHandler] = useState(defaultHandler());
   const [result, setResult] = useState(null);
@@ -578,7 +755,7 @@ function MCPDemo() {
     result: {
       protocolVersion: "2025-03-26",
       capabilities: { tools: { listChanged: true }, adhp: policyDoc },
-      serverInfo: { name: "Demo Agent", version: "1.0.0" }
+      serverInfo: { name: t.mcp_server_name, version: "1.0.0" }
     }
   };
 
@@ -587,43 +764,63 @@ function MCPDemo() {
     params: {
       protocolVersion: "2025-03-26",
       capabilities: { roots: { listChanged: true } },
-      clientInfo: { name: "ADHP Demo Client", version: "0.3.0" }
+      clientInfo: { name: t.mcp_client_name, version: "0.3.0" }
     }
   };
 
   const executeCheck = useCallback(() => {
-    setResult(runMatch(policyDoc.policies[0], reqDoc.require[0]));
+    setResult(runMatch(policyDoc.policies[0], reqDoc.require[0], lang));
     setHasExecuted(true);
-  }, [sender, handler]);
+  }, [sender, handler, lang]);
 
   return (
     <div>
       <div style={s({ marginBottom: "12px", padding: "8px 12px", background: "#111", border: "1px solid #1e1e1e", borderLeft: "3px solid #8b5cf6", borderRadius: "6px", fontSize: "11px", color: "#777", lineHeight: "1.6" })}>
-        <strong style={{ color: "#999" }}>MCP:</strong> The server returns its ADHP policy inside <code style={{ color: "#f97316", background: "#1a1200", padding: "1px 4px", borderRadius: "2px", fontSize: "10px" }}>capabilities.adhp</code> during the initialize handshake. The client evaluates locally — requirements never leave the client.
+        <strong style={{ color: "#999" }}>{t.banner_mcp_strong}</strong>{t.banner_mcp_pre}<code style={{ color: "#f97316", background: "#1a1200", padding: "1px 4px", borderRadius: "2px", fontSize: "10px" }}>capabilities.adhp</code>{t.banner_mcp_post}
       </div>
 
       <div className="pg-grid" style={s({ display: "grid", gridTemplateColumns: "240px 1fr 240px", gap: "12px" })}>
-        <SenderPanel state={sender} setState={setSender} label="Data Sender" />
+        <SenderPanel state={sender} setState={setSender} />
 
         <div style={s({ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 })}>
           <div className="pg-center-grid" style={s({ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" })}>
             <div style={s({ background: "#111", border: "1px solid #1e3a5f", borderRadius: "8px", padding: "12px", display: "flex", flexDirection: "column", minWidth: 0 })}>
-              <JsonView data={mcpRequest} title="Client Request" titleColor="#3b82f6" />
+              <JsonView data={mcpRequest} title={t.json_client_req} titleColor="#3b82f6" />
             </div>
             <div style={s({ background: "#111", border: "1px solid #2d1e0f", borderRadius: "8px", padding: "12px", display: "flex", flexDirection: "column", minWidth: 0 })}>
-              <JsonView data={mcpResponse} highlightKeys={new Set(["adhp"])} title="Server Response + ADHP" titleColor="#f97316" />
+              <JsonView data={mcpResponse} highlightKeys={new Set(["adhp"])} title={t.json_server_resp} titleColor="#f97316" />
             </div>
           </div>
 
           <button onClick={executeCheck} style={s({ padding: "12px 24px", background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", color: "#fff", border: "none", borderRadius: "6px", fontSize: "14px", fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", cursor: "pointer", letterSpacing: "0.5px", boxShadow: "0 0 24px rgba(59,130,246,0.25)" })}>
-            Run match()
+            {t.run_match}
           </button>
 
           <ResultPanel result={result} hasExecuted={hasExecuted} />
         </div>
 
-        <HandlerPanel state={handler} setState={setHandler} label="Data Handler" />
+        <HandlerPanel state={handler} setState={setHandler} />
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// LANGUAGE TOGGLE
+// ═══════════════════════════════════════════════════════════
+
+function LangToggle({ lang, setLang }) {
+  const btn = (code) => s({
+    padding: "4px 10px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace",
+    border: `1px solid ${lang === code ? "#8b5cf6" : "#2a2a2a"}`,
+    background: lang === code ? "#8b5cf622" : "#151515",
+    color: lang === code ? "#c4b5fd" : "#777",
+    borderRadius: "4px", cursor: "pointer", fontWeight: lang === code ? 700 : 400,
+  });
+  return (
+    <div style={s({ display: "inline-flex", gap: "4px" })} role="group" aria-label="Language">
+      <button onClick={() => setLang("en")} style={btn("en")} aria-pressed={lang === "en"} lang="en">EN</button>
+      <button onClick={() => setLang("fr")} style={btn("fr")} aria-pressed={lang === "fr"} lang="fr">FR</button>
     </div>
   );
 }
@@ -632,8 +829,26 @@ function MCPDemo() {
 // APP
 // ═══════════════════════════════════════════════════════════
 
+function detectLang() {
+  try {
+    const saved = localStorage.getItem("adhp_lang");
+    if (saved === "fr" || saved === "en") return saved;
+  } catch (e) { /* localStorage may be unavailable */ }
+  const nav = (navigator.language || navigator.userLanguage || "en").toLowerCase();
+  return nav.startsWith("fr") ? "fr" : "en";
+}
+
 function App() {
+  const [lang, setLangState] = useState(detectLang);
   const [activeTab, setActiveTab] = useState("a2a");
+  const t = STRINGS[lang];
+
+  const setLang = (l) => {
+    setLangState(l);
+    try { localStorage.setItem("adhp_lang", l); } catch (e) { /* ignore */ }
+  };
+
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
   const tabStyle = (tab) => ({
     padding: "10px 24px", fontSize: "14px", fontWeight: 700,
@@ -645,37 +860,43 @@ function App() {
   });
 
   return (
+    <LangContext.Provider value={lang}>
     <div>
       <div style={s({ marginBottom: "14px", borderBottom: "1px solid #1a1a1a", paddingBottom: "12px" })}>
         <div style={s({ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px" })}>
           <div>
-            <div style={s({ fontSize: "10px", color: "#555", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "2px" })}>Agent Data Handling Policy</div>
-            <h1 style={s({ fontSize: "22px", fontWeight: 700, margin: 0, fontFamily: "'Space Grotesk',sans-serif", color: "#fff" })}>v0.3 Protocol Playground</h1>
-            <p style={s({ fontSize: "11px", color: "#555", margin: "4px 0 0 0" })}>Configure handler policies and sender requirements, then run the 6-check matching algorithm</p>
+            <div style={s({ fontSize: "10px", color: "#555", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "2px" })}>{t.eyebrow}</div>
+            <h1 style={s({ fontSize: "22px", fontWeight: 700, margin: 0, fontFamily: "'Space Grotesk',sans-serif", color: "#fff" })}>{t.title}</h1>
+            <p style={s({ fontSize: "11px", color: "#555", margin: "4px 0 0 0" })}>{t.subtitle}</p>
           </div>
-          <div style={s({ display: "flex", gap: "6px", flexWrap: "wrap", paddingTop: "4px" })}>
+          <div style={s({ display: "flex", gap: "6px", flexWrap: "wrap", paddingTop: "4px", alignItems: "center" })}>
             <LinkPill href={REPO}>GitHub</LinkPill>
-            <LinkPill href={REPO + "/blob/main/SPEC.md"}>Spec v0.3</LinkPill>
-            <LinkPill href={REPO + "/blob/main/schemas/adhp-v0.3.schema.json"}>Schema</LinkPill>
-            <LinkPill href={REPO + "/discussions"}>Discuss</LinkPill>
+            <LinkPill href={REPO + (lang === "fr" ? "/blob/main/README_FR.md" : "/blob/main/README.md")}>{t.link_readme}</LinkPill>
+            <LinkPill href={REPO + "/blob/main/SPEC.md"}>{t.link_spec}</LinkPill>
+            <LinkPill href={REPO + "/blob/main/schemas/adhp-v0.3.schema.json"}>{t.link_schema}</LinkPill>
+            <LinkPill href={REPO + "/discussions"}>{t.link_discuss}</LinkPill>
           </div>
         </div>
 
-        <div style={s({ display: "flex", gap: "4px", marginTop: "14px" })}>
-          <button onClick={() => setActiveTab("a2a")} style={tabStyle("a2a")}>A2A Agent Card</button>
-          <button onClick={() => setActiveTab("mcp")} style={tabStyle("mcp")}>MCP Handshake</button>
+        <div style={s({ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginTop: "14px", flexWrap: "wrap" })}>
+          <div style={s({ display: "flex", gap: "4px" })}>
+            <button onClick={() => setActiveTab("a2a")} style={tabStyle("a2a")}>{t.tab_a2a}</button>
+            <button onClick={() => setActiveTab("mcp")} style={tabStyle("mcp")}>{t.tab_mcp}</button>
+          </div>
+          <LangToggle lang={lang} setLang={setLang} />
         </div>
       </div>
 
-      {activeTab === "a2a" ? <A2ADemo /> : <MCPDemo />}
+      {activeTab === "a2a" ? <A2ADemo lang={lang} /> : <MCPDemo lang={lang} />}
 
       <div style={s({ textAlign: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #1a1a1a", fontSize: "10px", color: "#333" })}>
         ADHP v0.3.0 ·{" "}
         <a href={REPO} target="_blank" rel="noopener noreferrer" style={{ color: "#444", textDecoration: "none" }}>GitHub</a> ·{" "}
-        <a href={REPO + "/blob/main/SPEC.md"} target="_blank" rel="noopener noreferrer" style={{ color: "#444", textDecoration: "none" }}>Specification</a> ·{" "}
-        <a href={REPO + "/discussions"} target="_blank" rel="noopener noreferrer" style={{ color: "#444", textDecoration: "none" }}>Discussions</a>
+        <a href={REPO + "/blob/main/SPEC.md"} target="_blank" rel="noopener noreferrer" style={{ color: "#444", textDecoration: "none" }}>{t.footer_spec}</a> ·{" "}
+        <a href={REPO + "/discussions"} target="_blank" rel="noopener noreferrer" style={{ color: "#444", textDecoration: "none" }}>{t.footer_discuss}</a>
       </div>
     </div>
+    </LangContext.Provider>
   );
 }
 
